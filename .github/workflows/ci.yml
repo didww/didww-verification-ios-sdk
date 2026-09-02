@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build & test
+    runs-on: macos-15
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build
+        run: swift build --build-tests
+
+      - name: Test
+        run: |
+          set -o pipefail
+          swift test 2>&1 | tee test.log
+          # `swift test` exits 0 even when the XCTest bundle fails to load, which would
+          # report a green build that ran nothing. Fail loudly if no test actually executed.
+          grep -qE 'Executed [1-9][0-9]* tests' test.log \
+            || { echo "::error::No XCTest cases executed — the test bundle did not load."; exit 1; }

@@ -1,0 +1,21 @@
+# SwiftPM build output + local tooling (the "node_modules/tmp" of a Swift package)
+.build/
+.swiftpm/
+Packages/
+
+# A library pins nothing for its consumers — let them resolve freely.
+Package.resolved
+
+# Xcode / CocoaPods artifacts (present once someone opens this in Xcode or runs pod install)
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+Pods/
+
+# macOS / misc
+.DS_Store
+.netrc
+
+.omc
+.claude/
