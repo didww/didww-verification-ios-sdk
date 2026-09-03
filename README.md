@@ -6,7 +6,7 @@ It wraps three endpoints (start / status / submit) over two channels (SMS, callo
 
 - **Zero third-party runtime dependencies** — `URLSession` + `Codable` only.
 - **iOS 13+**, `async/await` throughout (back-deployed — see *Requirements*).
-- Swift Package Manager, or CocoaPods from a git source.
+- Swift Package Manager or CocoaPods.
 
 ## Requirements
 
@@ -36,10 +36,10 @@ targets: [
 
 ### CocoaPods
 
-Add the pod from git, pinned to a release tag, in your `Podfile`:
+Add it to your `Podfile`:
 
 ```ruby
-pod 'DIDWWVerification', :git => 'https://github.com/didww/didww-verification-ios-sdk.git', :tag => '1.0.0'
+pod 'DIDWWVerification', '~> 1.0'
 ```
 
 ## Quick start

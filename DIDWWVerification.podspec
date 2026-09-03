@@ -11,8 +11,8 @@ Pod::Spec.new do |s|
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'DIDWW' => 'support@didww.com' }
 
-  # Consumed from git by tag until this pod is published to the CocoaPods trunk:
-  #   pod 'DIDWWVerification', :git => 'https://github.com/didww/didww-verification-ios-sdk.git', :tag => '1.0.0'
+  # Published to the CocoaPods trunk:
+  #   pod 'DIDWWVerification', '~> 1.0'
   # NOTE (chicken-and-egg): the :tag below must exist as a real git tag before any consumer can
   # resolve it — create the tag at release time, matching s.version exactly (no `v` prefix).
   s.source           = { :git => 'https://github.com/didww/didww-verification-ios-sdk.git', :tag => s.version.to_s }
