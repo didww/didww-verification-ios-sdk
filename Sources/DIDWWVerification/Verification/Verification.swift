@@ -169,12 +169,16 @@ extension Verification {
             /// The tag the message was rendered in — your first matching ``SMSOptions/languages``,
             /// or the server's `en-US` fallback. Compare with what you asked for to spot a fallback.
             public let language: String?
+            /// The OTP code length, 4–8, set per application. Size a code-entry input from it.
+            public let codeLength: Int?
         }
 
         public struct Callout: Sendable, Equatable {
             /// The tag the code is announced in — your first matching ``CalloutOptions/languages``,
             /// or the server's `en-US` fallback. Compare with what you asked for to spot a fallback.
             public let language: String?
+            /// The OTP code length, 4–8, set per application. Size a code-entry input from it.
+            public let codeLength: Int?
         }
     }
 }
