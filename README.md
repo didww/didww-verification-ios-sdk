@@ -298,6 +298,11 @@ properties on that block, never as a new enum case.
 Wrap a call in a `Task` and `cancel()` it — the in-flight request is cancelled and the call throws
 `CancellationError`. Per-request timeout is set via `Configuration(timeout:)`.
 
+### User-Agent
+
+Every request sends `User-Agent: didww-verification-ios/<SDK version>`; there is no way to
+override it.
+
 ### Debug logging (opt-in, redacting)
 
 Logging is **off** by default. Provide a `VerificationLogger` to turn it on; the SDK redacts OTP

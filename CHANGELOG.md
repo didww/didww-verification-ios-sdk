@@ -4,6 +4,10 @@ Notable changes to `DIDWWVerification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking change to
 the public surface requires a major version.
 
+## Unreleased
+
+- Every request now carries a `User-Agent: didww-verification-ios/<version>` header.
+
 ## 1.0.0
 
 First public release — 2026-09.
