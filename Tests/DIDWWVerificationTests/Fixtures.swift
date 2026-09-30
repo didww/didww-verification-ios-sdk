@@ -8,10 +8,12 @@ enum Fixtures {
 
     static func startSMS(id: String = "11111111-1111-1111-1111-111111111111",
                          destination: String = "+15551234567",
-                         expiresAt: String = farFuture) -> String {
+                         expiresAt: String = farFuture,
+                         codeLength: Int = 6) -> String {
         """
         {"data":{"id":"\(id)","destination":"\(destination)","delivery_method":"sms",\
-        "status":"pending","expires_at":"\(expiresAt)","sms":{"template":"default_otp","language":"en-US"}}}
+        "status":"pending","expires_at":"\(expiresAt)",\
+        "sms":{"template":"default_otp","language":"en-US","code_length":\(codeLength)}}}
         """
     }
 
@@ -19,10 +21,12 @@ enum Fixtures {
     static func startCallout(id: String = "33333333-3333-3333-3333-333333333333",
                              destination: String = "+15551234567",
                              language: String = "pt-BR",
-                             expiresAt: String = farFuture) -> String {
+                             expiresAt: String = farFuture,
+                             codeLength: Int = 6) -> String {
         """
         {"data":{"id":"\(id)","destination":"\(destination)","delivery_method":"callout",\
-        "status":"pending","expires_at":"\(expiresAt)","callout":{"language":"\(language)"}}}
+        "status":"pending","expires_at":"\(expiresAt)",\
+        "callout":{"language":"\(language)","code_length":\(codeLength)}}}
         """
     }
 

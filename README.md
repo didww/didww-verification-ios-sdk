@@ -242,6 +242,12 @@ do {
 }
 ```
 
+> **429 — a `start` too soon after a non-denied one for the same destination.** The server enforces
+> a short cooldown between starts; this SDK version still surfaces it as
+> `APIError.unexpectedStatus(code: 429, items:)`, with `items.first?.known == .destinationInCooldown`
+> — a dedicated `APIError` case is deferred to a future major version. Wait and start again; the SDK
+> never retries a `start` for you.
+
 ### Start can come back denied
 
 `start()` returning normally does **not** mean a code was dispatched. The server runs the
@@ -279,12 +285,14 @@ case.
 
 `details` carries the server's method-specific block, keyed by channel — on the `Verification`
 returned by `start` and on every `VerificationResult`. The `sms` channel returns the `template` and
-the `language` it was rendered in; `callout` returns the `language` it is announced in.
+the `language` it was rendered in; `callout` returns the `language` it is announced in. Both also
+carry `codeLength` — the OTP code length the application is configured to send, 4–8 — so you can
+size a code-entry input from it.
 
 ```swift
 switch result.details {
-case .sms(let sms):         print(sms.template ?? "-", sms.language ?? "-")
-case .callout(let callout): print(callout.language ?? "-")
+case .sms(let sms):         print(sms.template ?? "-", sms.language ?? "-", sms.codeLength.map(String.init) ?? "-")
+case .callout(let callout): print(callout.language ?? "-", callout.codeLength.map(String.init) ?? "-")
 case nil:                   break
 }
 ```
@@ -306,7 +314,9 @@ override it.
 ### Debug logging (opt-in, redacting)
 
 Logging is **off** by default. Provide a `VerificationLogger` to turn it on; the SDK redacts OTP
-codes and phone numbers before anything reaches your logger.
+codes and phone numbers before anything reaches your logger. A code is 4 to 8 digits, chosen by the
+server, so any run of 4 to 15 digits outside a UUID is masked — years and ports go with them,
+while a verification id stays readable. A run longer than 15 digits is left as is.
 
 ```swift
 struct ConsoleLogger: VerificationLogger { func log(_ m: String) { print(m) } }

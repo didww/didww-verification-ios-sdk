@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'DIDWWVerification'
-  s.version          = '1.0.0'
+  s.version          = '1.1.0'
   s.summary          = 'DIDWW phone-number verification SDK for iOS.'
   s.description      = <<-DESC
     A lean, dependency-free async/await Swift client for the DIDWW phone-number verification API

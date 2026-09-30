@@ -79,13 +79,14 @@ final class ForwardCompatibilityTests: XCTestCase {
         XCTAssertEqual(thrown, .validationFailed([]))
     }
 
-    /// A future HTTP status this SDK doesn't model (429, 409, …) still carries its slugs through.
+    /// A future HTTP status this SDK doesn't model (409, …) still carries its slugs through. 429 is
+    /// pinned separately in `ErrorMappingTests`, since `destination_in_cooldown` is now a known slug.
     func testUnmodeledHTTPStatusStillCarriesItsItems() async {
-        let body = Fixtures.errorBody([(code: "rate_limited", detail: "too many requests")])
-        let thrown = await error(status: 429, body: body)
+        let body = Fixtures.errorBody([(code: "verification_conflict", detail: "conflicting request")])
+        let thrown = await error(status: 409, body: body)
         XCTAssertEqual(
             thrown,
-            .unexpectedStatus(code: 429, items: [APIErrorItem(code: "rate_limited", detail: "too many requests")])
+            .unexpectedStatus(code: 409, items: [APIErrorItem(code: "verification_conflict", detail: "conflicting request")])
         )
     }
 
@@ -149,7 +150,7 @@ final class ForwardCompatibilityTests: XCTestCase {
         """
         let result = try await makeClient(transport: MockTransport(httpResponse(body)))
             .status(makeHandle(method: .callout))
-        XCTAssertEqual(result.details, .callout(.init(language: "pt-BR")))
+        XCTAssertEqual(result.details, .callout(.init(language: "pt-BR", codeLength: nil)))
     }
 
     /// The `sms` block as the server serializes it today. This SDK models neither
@@ -160,11 +161,11 @@ final class ForwardCompatibilityTests: XCTestCase {
         {"data":{"id":"11111111-1111-1111-1111-111111111111","destination":"+15551234567",\
         "delivery_method":"sms","fee":"0.06","status":"pending","error_code":null,\
         "error_detail":null,"expires_at":"\(Fixtures.farFuture)",\
-        "sms":{"template":"default_otp","language":"de-DE","interception_timeout":120,\
-        "app_hash":"A1b2C3d4E5f"}}}
+        "sms":{"template":"default_otp","language":"de-DE","interception_timeout":300,\
+        "code_length":6,"app_hash":"A1b2C3d4E5f"}}}
         """
         let result = try await makeClient(transport: MockTransport(httpResponse(body))).status(makeHandle())
-        XCTAssertEqual(result.details, .sms(.init(template: "default_otp", language: "de-DE")))
+        XCTAssertEqual(result.details, .sms(.init(template: "default_otp", language: "de-DE", codeLength: 6)))
     }
 
     /// A block short of a key the API marks required still yields the rest — the same fail-open
@@ -177,7 +178,7 @@ final class ForwardCompatibilityTests: XCTestCase {
         """
         let result = try await makeClient(transport: MockTransport(httpResponse(body)))
             .status(makeHandle(method: .callout))
-        XCTAssertEqual(result.details, .callout(.init(language: nil)))
+        XCTAssertEqual(result.details, .callout(.init(language: nil, codeLength: nil)))
     }
 
     /// A new status is non-terminal by construction, so a polling caller keeps polling rather than
