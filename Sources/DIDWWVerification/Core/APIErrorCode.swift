@@ -14,6 +14,7 @@ public enum APIErrorCode: String, Sendable, Equatable, CaseIterable {
     case deliveryMethodInclusion = "delivery_method_inclusion"
     case deliveryMethodInvalid = "delivery_method_invalid"
     case languagesInvalid = "languages_invalid"
+    case autofillInvalid = "autofill_invalid"
     case appHashInvalid = "app_hash_invalid"
     case codeBlank = "code_blank"
     case codeValuePresent = "code_value_present"

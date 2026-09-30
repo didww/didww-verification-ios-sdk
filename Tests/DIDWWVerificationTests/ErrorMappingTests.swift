@@ -140,7 +140,8 @@ final class ErrorMappingTests: XCTestCase {
     /// slug on a 2xx verification. This is the check that would have caught `unauthorized` and
     /// `app_hash_invalid` going missing.
     private static let serverSlugs = [
-        "already_verified", "app_hash_invalid", "application_deleted", "balance_insufficient",
+        "already_verified", "app_hash_invalid", "application_deleted", "autofill_invalid",
+        "balance_insufficient",
         "cli_blank", "cli_invalid", "cli_value_present", "code_blank", "code_invalid",
         "code_value_present", "delivery_method_blank", "delivery_method_inclusion",
         "delivery_method_invalid", "denied_by_callback", "denied_invalid_callback_response",
@@ -152,14 +153,14 @@ final class ErrorMappingTests: XCTestCase {
     ]
 
     func testEveryServerSlugIsModelledByExactlyOneType() {
-        XCTAssertEqual(Self.serverSlugs.count, 32, "the server registry has 32 slugs")
+        XCTAssertEqual(Self.serverSlugs.count, 33, "the server registry has 33 slugs")
         for slug in Self.serverSlugs {
             let isEnvelopeError = APIErrorCode(rawValue: slug) != nil
             let isOutcomeReason = Verification.Reason(wireValue: slug) != .other(slug)
             XCTAssertTrue(isEnvelopeError || isOutcomeReason, "'\(slug)' is not modelled by either type")
             XCTAssertFalse(isEnvelopeError && isOutcomeReason, "'\(slug)' is modelled by both types")
         }
-        XCTAssertEqual(APIErrorCode.allCases.count, 23)
+        XCTAssertEqual(APIErrorCode.allCases.count, 24)
     }
 
     /// A 429 for a destination in cooldown maps to `.unexpectedStatus` — a dedicated `APIError` case
@@ -183,6 +184,14 @@ final class ErrorMappingTests: XCTestCase {
             XCTAssertEqual(items.first?.known, .destinationInCooldown)
         }
         XCTAssertEqual(mock.recordedRequests.count, 1, "a 429 must not be retried")
+    }
+
+    func test422AutofillInvalidTypesKnown() async {
+        let body = Fixtures.errorBody([(code: "autofill_invalid", detail: "autofill is invalid")])
+        guard case .validationFailed(let items) = await errorFrom(status: 422, body: body) else {
+            return XCTFail("expected .validationFailed")
+        }
+        XCTAssertEqual(items.first?.known, .autofillInvalid)
     }
 
     /// `app_hash_invalid` is a request-validation slug, so it belongs on the envelope type.
