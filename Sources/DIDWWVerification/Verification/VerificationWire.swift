@@ -17,6 +17,7 @@ struct StartRequestData: Encodable {
     let deliveryMethod: String
     /// Already checked against `deliveryMethod` by the caller.
     let channelOptions: [any ChannelOptionsBlock]
+    let custom: String?
 
     /// Spelled at runtime — the block's key comes from the block itself.
     private struct WireKey: CodingKey {
@@ -31,6 +32,7 @@ struct StartRequestData: Encodable {
         var c = encoder.container(keyedBy: WireKey.self)
         try c.encode(destination, forKey: WireKey("destination"))
         try c.encode(deliveryMethod, forKey: WireKey("delivery_method"))
+        try c.encodeIfPresent(custom, forKey: WireKey("custom"))
         // Omitted when empty — the server distinguishes absent from present.
         for block in channelOptions where !block.isEmpty {
             let key = WireKey(type(of: block).channel.wireValue)

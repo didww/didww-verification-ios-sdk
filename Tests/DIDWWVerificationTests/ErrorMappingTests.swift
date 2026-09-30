@@ -142,7 +142,7 @@ final class ErrorMappingTests: XCTestCase {
     private static let serverSlugs = [
         "already_verified", "app_hash_invalid", "application_deleted", "balance_insufficient",
         "cli_blank", "cli_invalid", "cli_value_present", "code_blank", "code_invalid",
-        "code_value_present", "delivery_method_blank", "delivery_method_inclusion",
+        "code_value_present", "custom_too_long", "delivery_method_blank", "delivery_method_inclusion",
         "delivery_method_invalid", "denied_by_callback", "denied_invalid_callback_response",
         "denied_missing_callback_url", "destination_blank", "destination_in_cooldown",
         "destination_invalid", "destination_not_supported_for_channel", "dispatch_failed",
@@ -152,14 +152,14 @@ final class ErrorMappingTests: XCTestCase {
     ]
 
     func testEveryServerSlugIsModelledByExactlyOneType() {
-        XCTAssertEqual(Self.serverSlugs.count, 32, "the server registry has 32 slugs")
+        XCTAssertEqual(Self.serverSlugs.count, 33, "the server registry has 33 slugs")
         for slug in Self.serverSlugs {
             let isEnvelopeError = APIErrorCode(rawValue: slug) != nil
             let isOutcomeReason = Verification.Reason(wireValue: slug) != .other(slug)
             XCTAssertTrue(isEnvelopeError || isOutcomeReason, "'\(slug)' is not modelled by either type")
             XCTAssertFalse(isEnvelopeError && isOutcomeReason, "'\(slug)' is modelled by both types")
         }
-        XCTAssertEqual(APIErrorCode.allCases.count, 23)
+        XCTAssertEqual(APIErrorCode.allCases.count, 24)
     }
 
     /// A 429 for a destination in cooldown maps to `.unexpectedStatus` — a dedicated `APIError` case
@@ -192,6 +192,14 @@ final class ErrorMappingTests: XCTestCase {
             return XCTFail("expected .validationFailed")
         }
         XCTAssertEqual(items.first?.known, .appHashInvalid)
+    }
+
+    func test422CustomTooLongTypesKnown() async {
+        let body = Fixtures.errorBody([(code: "custom_too_long", detail: "custom is too long")])
+        guard case .validationFailed(let items) = await errorFrom(status: 422, body: body) else {
+            return XCTFail("expected .validationFailed")
+        }
+        XCTAssertEqual(items.first?.known, .customTooLong)
     }
 
     /// `unauthorized` types too. It seldom reaches a caller as an item — `APIError.unauthorized`

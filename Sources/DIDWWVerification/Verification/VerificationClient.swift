@@ -46,8 +46,12 @@ public struct VerificationClient: Sendable {
     /// `callout:`. Passing options for a channel other than `method` throws
     /// ``VerificationError/channelMismatch(expected:)`` — the server would otherwise drop them and
     /// answer `201` with its defaults.
+    ///
+    /// `custom` is free-form text (up to 4096 characters) forwarded to your callback server. It is
+    /// sent from the device, so the callback server must validate it.
     public func start(destination: String, method: DeliveryMethod,
-                      sms: SMSOptions? = nil, callout: CalloutOptions? = nil) async throws -> Verification {
+                      sms: SMSOptions? = nil, callout: CalloutOptions? = nil,
+                      custom: String? = nil) async throws -> Verification {
         // One slot per channel with options. Guarded on presence, not content: the server drops a
         // non-matching block and answers 201 either way, so this is the only signal.
         let supplied: [(any ChannelOptionsBlock)?] = [sms, callout]
@@ -57,7 +61,7 @@ public struct VerificationClient: Sendable {
         }
         let body = RequestEnvelope(
             data: StartRequestData(destination: destination, deliveryMethod: method.wireValue,
-                                   channelOptions: channelOptions)
+                                   channelOptions: channelOptions, custom: custom)
         )
         let request = try factory.request(method: "POST", path: ["verifications"], jsonBody: body)
         let dto: VerificationDTO = try await perform(request)
