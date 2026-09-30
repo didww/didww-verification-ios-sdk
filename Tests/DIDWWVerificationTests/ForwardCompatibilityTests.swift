@@ -154,7 +154,7 @@ final class ForwardCompatibilityTests: XCTestCase {
     }
 
     /// The `sms` block as the server serializes it today. This SDK models neither
-    /// `interception_timeout` nor `app_hash` (both Android SMS Retriever concerns); pinned so the
+    /// `interception_timeout` nor `autofill` (both Android SMS Retriever concerns); pinned so the
     /// keys it does model keep decoding beside them.
     func testTheFullServerSMSBlockDecodesDownToTheKeysWeModel() async throws {
         let body = """
@@ -162,7 +162,7 @@ final class ForwardCompatibilityTests: XCTestCase {
         "delivery_method":"sms","fee":"0.06","status":"pending","error_code":null,\
         "error_detail":null,"expires_at":"\(Fixtures.farFuture)",\
         "sms":{"template":"default_otp","language":"de-DE","interception_timeout":300,\
-        "code_length":6,"app_hash":"A1b2C3d4E5f"}}}
+        "code_length":6,"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}}}}
         """
         let result = try await makeClient(transport: MockTransport(httpResponse(body))).status(makeHandle())
         XCTAssertEqual(result.details, .sms(.init(template: "default_otp", language: "de-DE", codeLength: 6)))
