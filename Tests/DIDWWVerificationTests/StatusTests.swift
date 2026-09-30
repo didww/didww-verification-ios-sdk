@@ -17,7 +17,7 @@ final class StatusTests: XCTestCase {
         XCTAssertNil(request.httpBody)
         XCTAssertEqual(result.status, .verified)
         XCTAssertEqual(result.fee, Decimal(string: "0.05"))
-        XCTAssertEqual(result.details, .sms(.init(template: "default_otp", language: "en-US")))
+        XCTAssertEqual(result.details, .sms(.init(template: "default_otp", language: "en-US", codeLength: nil)))
     }
 
     func testFeeDecodesFromJSONNumberWithoutFloatDrift() async throws {
@@ -63,7 +63,7 @@ final class StatusTests: XCTestCase {
                        "https://verify.example.com/api/v1/verifications/by_number/15551234567")
         XCTAssertNil(request.httpBody)
         XCTAssertEqual(result.status, .pending)
-        XCTAssertEqual(result.details, .sms(.init(template: "default_otp", language: "en-US")))
+        XCTAssertEqual(result.details, .sms(.init(template: "default_otp", language: "en-US", codeLength: 6)))
     }
 
     func testStatusByNumberMapsNoVerificationTo404() async {
@@ -111,7 +111,7 @@ final class StatusTests: XCTestCase {
         let result = try await client.status(makeHandle(method: .callout))
 
         XCTAssertEqual(result.deliveryMethod, .callout)
-        XCTAssertEqual(result.details, .callout(.init(language: "pt-BR")))
+        XCTAssertEqual(result.details, .callout(.init(language: "pt-BR", codeLength: nil)))
     }
 
     // A tag with no recording falls back to en-US server-side and still answers 201, so comparing
@@ -136,7 +136,7 @@ final class StatusTests: XCTestCase {
         let verification = try await client.start(destination: "+15551234567", method: .sms,
                                                   sms: .init(languages: ["en-US"]))
 
-        XCTAssertEqual(verification.details, .sms(.init(template: "default_otp", language: "en-US")))
+        XCTAssertEqual(verification.details, .sms(.init(template: "default_otp", language: "en-US", codeLength: 6)))
     }
 
     func testSMSResultCarriesTheTemplateLanguage() async throws {
@@ -148,5 +148,29 @@ final class StatusTests: XCTestCase {
         guard case .sms(let sms) = result.details else { return XCTFail("expected an sms block") }
         XCTAssertEqual(sms.language, "en-US")
         XCTAssertEqual(sms.template, "default_otp")
+    }
+
+    // MARK: - codeLength
+
+    func testStartSMSCarriesCodeLengthWhenPresent() async throws {
+        let mock = MockTransport(httpResponse(Fixtures.startSMS(codeLength: 6), status: 201))
+        let client = makeClient(transport: mock)
+
+        let verification = try await client.start(destination: "+15551234567", method: .sms)
+
+        guard case .sms(let sms) = verification.details else { return XCTFail("expected an sms block") }
+        XCTAssertEqual(sms.codeLength, 6)
+    }
+
+    /// A non-default length (the app's `code_length` need not be 6) decodes through untouched.
+    func testStartCalloutCarriesANonDefaultCodeLength() async throws {
+        let mock = MockTransport(httpResponse(Fixtures.startCallout(codeLength: 4), status: 201))
+        let client = makeClient(transport: mock)
+
+        let verification = try await client.start(destination: "+15551234567", method: .callout,
+                                                  callout: .init(languages: ["pt-BR"]))
+
+        guard case .callout(let callout) = verification.details else { return XCTFail("expected a callout block") }
+        XCTAssertEqual(callout.codeLength, 4)
     }
 }

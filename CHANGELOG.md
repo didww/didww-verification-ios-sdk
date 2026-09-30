@@ -4,6 +4,24 @@ Notable changes to `DIDWWVerification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking change to
 the public surface requires a major version.
 
+## 1.1.0
+
+Released — 2026-10.
+
+- **`codeLength` on the delivery-method block.** `Verification.Details.SMS` and `.Callout` both gain
+  a `codeLength: Int?` — the OTP code length the application is configured to send, 4–8, set per
+  application.
+- **`destination_in_cooldown` is a known `APIErrorCode`.** A `start` too soon after a non-denied one
+  for the same app + destination now types via `item.known`; it still surfaces as
+  `APIError.unexpectedStatus(code: 429, items:)` in this release — a dedicated `APIError` case is
+  deferred to a future major version.
+- **Redaction widened from a fixed 6-digit code to the server-chosen 4–8 digit range**, since the
+  code length is now configurable per application. Canonical UUIDs (verification ids) pass through
+  the logger intact instead of having a digit run inside them masked.
+- **The verification's code lifetime is set per application** (60–600 s, default 300) rather than a
+  fixed duration — always read `Verification.expiresAt`/`VerificationResult.expiresAt` instead of
+  assuming a constant.
+
 ## 1.0.0
 
 First public release — 2026-09.

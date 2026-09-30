@@ -38,4 +38,7 @@ public enum APIErrorCode: String, Sendable, Equatable, CaseIterable {
     case notFound = "not_found"                        // 404
     case balanceInsufficient = "balance_insufficient"  // 402
     case internalError = "internal_error"              // 422 / 500
+    // A start too soon after a non-denied one for the same app + destination. Still maps to
+    // ``APIError/unexpectedStatus(code:items:)`` — a dedicated `APIError` case is deferred.
+    case destinationInCooldown = "destination_in_cooldown"  // 429
 }

@@ -88,10 +88,23 @@ struct VerificationDTO: Decodable {
 struct SMSInfo: Decodable {
     let template: String?
     let language: String?
+    let codeLength: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case template
+        case language
+        case codeLength = "code_length"
+    }
 }
 
 struct CalloutInfo: Decodable {
     let language: String?
+    let codeLength: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case language
+        case codeLength = "code_length"
+    }
 }
 
 // MARK: - DTO → domain mapping
@@ -139,8 +152,8 @@ extension VerificationDTO {
     /// The one block the server emitted, mapped to its domain case. Keys stay optional even where
     /// the API marks them required — a block short of a key still yields the rest.
     private var details: Verification.Details? {
-        if let sms { return .sms(.init(template: sms.template, language: sms.language)) }
-        if let callout { return .callout(.init(language: callout.language)) }
+        if let sms { return .sms(.init(template: sms.template, language: sms.language, codeLength: sms.codeLength)) }
+        if let callout { return .callout(.init(language: callout.language, codeLength: callout.codeLength)) }
         return nil
     }
 }

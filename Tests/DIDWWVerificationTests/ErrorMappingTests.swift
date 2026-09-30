@@ -144,21 +144,45 @@ final class ErrorMappingTests: XCTestCase {
         "cli_blank", "cli_invalid", "cli_value_present", "code_blank", "code_invalid",
         "code_value_present", "delivery_method_blank", "delivery_method_inclusion",
         "delivery_method_invalid", "denied_by_callback", "denied_invalid_callback_response",
-        "denied_missing_callback_url", "destination_blank", "destination_invalid",
-        "destination_not_supported_for_channel", "dispatch_failed", "expired", "internal_error",
-        "languages_invalid", "not_found", "not_ready_to_report", "parameter_missing",
-        "stale_dispatch", "superseded", "too_many_attempts", "unauthorized", "validation_failed",
+        "denied_missing_callback_url", "destination_blank", "destination_in_cooldown",
+        "destination_invalid", "destination_not_supported_for_channel", "dispatch_failed",
+        "expired", "internal_error", "languages_invalid", "not_found", "not_ready_to_report",
+        "parameter_missing", "stale_dispatch", "superseded", "too_many_attempts", "unauthorized",
+        "validation_failed",
     ]
 
     func testEveryServerSlugIsModelledByExactlyOneType() {
-        XCTAssertEqual(Self.serverSlugs.count, 31, "the server registry has 31 slugs")
+        XCTAssertEqual(Self.serverSlugs.count, 32, "the server registry has 32 slugs")
         for slug in Self.serverSlugs {
             let isEnvelopeError = APIErrorCode(rawValue: slug) != nil
             let isOutcomeReason = Verification.Reason(wireValue: slug) != .other(slug)
             XCTAssertTrue(isEnvelopeError || isOutcomeReason, "'\(slug)' is not modelled by either type")
             XCTAssertFalse(isEnvelopeError && isOutcomeReason, "'\(slug)' is modelled by both types")
         }
-        XCTAssertEqual(APIErrorCode.allCases.count, 22)
+        XCTAssertEqual(APIErrorCode.allCases.count, 23)
+    }
+
+    /// A 429 for a destination in cooldown maps to `.unexpectedStatus` — a dedicated `APIError` case
+    /// is deferred — but the item still types via the known slug, and the SDK never auto-retries a
+    /// POST on 429: exactly one request goes out.
+    func test429DestinationInCooldownTypesKnownAndIsNotRetried() async {
+        let mock = MockTransport(httpResponse(
+            Fixtures.errorBody([(code: "destination_in_cooldown", detail: "destination is in cooldown")]),
+            status: 429
+        ))
+        let client = makeClient(transport: mock)
+
+        do {
+            _ = try await client.start(destination: "+15551234567", method: .sms)
+            XCTFail("expected error for status 429")
+        } catch {
+            guard case .unexpectedStatus(let code, let items) = error as? APIError else {
+                return XCTFail("expected .unexpectedStatus")
+            }
+            XCTAssertEqual(code, 429)
+            XCTAssertEqual(items.first?.known, .destinationInCooldown)
+        }
+        XCTAssertEqual(mock.recordedRequests.count, 1, "a 429 must not be retried")
     }
 
     /// `app_hash_invalid` is a request-validation slug, so it belongs on the envelope type.
