@@ -36,13 +36,26 @@ public struct APIErrorItem: Sendable, Equatable {
     public let code: String
     /// Human-readable text for the slug.
     public let detail: String
+    /// Whole seconds to wait before trying again, read from the response's `Retry-After` header.
+    /// Only ever non-`nil` on the 429 `destination_in_cooldown` cooldown — `nil` on every other
+    /// error, and on a 429 whose header the server omitted or sent as anything other than a
+    /// non-negative integer (e.g. an HTTP-date).
+    public let retryAfter: TimeInterval?
 
-    public init(code: String, detail: String) {
+    public init(code: String, detail: String, retryAfter: TimeInterval? = nil) {
         self.code = code
         self.detail = detail
+        self.retryAfter = retryAfter
     }
 
     /// The typed slug when this SDK version recognizes it, else `nil`. Computed, so it takes no
     /// part in `Equatable`.
     public var known: APIErrorCode? { APIErrorCode(rawValue: code) }
+
+    /// `retryAfter` is enrichment read off the transport, not part of the item's identity — excluded
+    /// here on the same terms as the computed `known`, so existing equality checks don't need to
+    /// know about it.
+    public static func == (lhs: APIErrorItem, rhs: APIErrorItem) -> Bool {
+        lhs.code == rhs.code && lhs.detail == rhs.detail
+    }
 }

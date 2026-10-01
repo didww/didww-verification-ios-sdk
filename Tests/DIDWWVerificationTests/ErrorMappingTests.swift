@@ -163,12 +163,12 @@ final class ErrorMappingTests: XCTestCase {
     }
 
     /// A 429 for a destination in cooldown maps to `.unexpectedStatus` — a dedicated `APIError` case
-    /// is deferred — but the item still types via the known slug, and the SDK never auto-retries a
-    /// POST on 429: exactly one request goes out.
+    /// is deferred — but the item still types via the known slug, carries the `Retry-After` header
+    /// as whole seconds, and the SDK never auto-retries a POST on 429: exactly one request goes out.
     func test429DestinationInCooldownTypesKnownAndIsNotRetried() async {
         let mock = MockTransport(httpResponse(
             Fixtures.errorBody([(code: "destination_in_cooldown", detail: "destination is in cooldown")]),
-            status: 429
+            status: 429, retryAfterHeader: "17"
         ))
         let client = makeClient(transport: mock)
 
@@ -181,8 +181,67 @@ final class ErrorMappingTests: XCTestCase {
             }
             XCTAssertEqual(code, 429)
             XCTAssertEqual(items.first?.known, .destinationInCooldown)
+            XCTAssertEqual(items.first?.retryAfter, 17)
         }
         XCTAssertEqual(mock.recordedRequests.count, 1, "a 429 must not be retried")
+    }
+
+    /// No `Retry-After` header at all → `retryAfter` is `nil` rather than some assumed default.
+    func test429WithNoRetryAfterHeaderYieldsNilRetryAfter() async {
+        guard case .unexpectedStatus(_, let items) = await errorFrom(
+            status: 429,
+            body: Fixtures.errorBody([(code: "destination_in_cooldown", detail: "destination is in cooldown")])
+        ) else {
+            return XCTFail("expected .unexpectedStatus")
+        }
+        XCTAssertNil(items.first?.retryAfter)
+    }
+
+    /// A negative, signed, decimal, non-numeric, or blank `Retry-After` degrades to `nil` rather
+    /// than a bogus wait time — the server never sends an HTTP-date here, only a plain integer.
+    func test429WithMalformedRetryAfterHeaderYieldsNilRetryAfter() async {
+        for malformed in ["-5", "+5", "5.5", "soon", "", "Wed, 21 Oct 2026 07:28:00 GMT"] {
+            let mock = MockTransport(httpResponse(
+                Fixtures.errorBody([(code: "destination_in_cooldown", detail: "destination is in cooldown")]),
+                status: 429, retryAfterHeader: malformed
+            ))
+            let client = makeClient(transport: mock)
+            do {
+                _ = try await client.start(destination: "+15551234567", method: .sms)
+                XCTFail("expected error for status 429")
+            } catch {
+                guard case .unexpectedStatus(_, let items) = error as? APIError else {
+                    return XCTFail("expected .unexpectedStatus")
+                }
+                XCTAssertNil(items.first?.retryAfter, "'\(malformed)' must not parse")
+            }
+        }
+    }
+
+    /// Surrounding whitespace around an otherwise-valid header is tolerated.
+    func test429WithWhitespacePaddedRetryAfterHeaderStillParses() async {
+        let mock = MockTransport(httpResponse(
+            Fixtures.errorBody([(code: "destination_in_cooldown", detail: "destination is in cooldown")]),
+            status: 429, retryAfterHeader: " 17 "
+        ))
+        let client = makeClient(transport: mock)
+        do {
+            _ = try await client.start(destination: "+15551234567", method: .sms)
+            XCTFail("expected error for status 429")
+        } catch {
+            guard case .unexpectedStatus(_, let items) = error as? APIError else {
+                return XCTFail("expected .unexpectedStatus")
+            }
+            XCTAssertEqual(items.first?.retryAfter, 17)
+        }
+    }
+
+    /// `retryAfter` is enrichment, not identity: two items with the same code/detail but a different
+    /// `retryAfter` still compare equal, matching `known` being excluded from `Equatable` too.
+    func testRetryAfterIsExcludedFromEquatable() {
+        let a = APIErrorItem(code: "destination_in_cooldown", detail: "destination is in cooldown", retryAfter: 17)
+        let b = APIErrorItem(code: "destination_in_cooldown", detail: "destination is in cooldown", retryAfter: 42)
+        XCTAssertEqual(a, b)
     }
 
     /// `app_hash_invalid` is a request-validation slug, so it belongs on the envelope type.

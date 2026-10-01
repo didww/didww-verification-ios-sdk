@@ -245,8 +245,19 @@ do {
 > **429 — a `start` too soon after a non-denied one for the same destination.** The server enforces
 > a short cooldown between starts; this SDK version still surfaces it as
 > `APIError.unexpectedStatus(code: 429, items:)`, with `items.first?.known == .destinationInCooldown`
-> — a dedicated `APIError` case is deferred to a future major version. Wait and start again; the SDK
-> never retries a `start` for you.
+> — a dedicated `APIError` case is deferred to a future major version. Each item's `retryAfter`
+> carries the server's `Retry-After` header as whole seconds to wait before trying again; it's `nil`
+> if the response sent no usable header. The SDK never retries a `start` for you.
+>
+> ```swift
+> } catch APIError.unexpectedStatus(let code, let items) where code == 429 {
+>     if let wait = items.first?.retryAfter {
+>         scheduleRetry(after: wait)          // wait seconds, then start again
+>     } else {
+>         scheduleRetry(after: 30)            // no header — fall back to a fixed backoff
+>     }
+> }
+> ```
 
 ### Start can come back denied
 

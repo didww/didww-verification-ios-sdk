@@ -36,7 +36,10 @@ struct URLSessionTransport: Transport {
                         continuation.resume(throwing: APIError.unexpectedResponse("no HTTP response"))
                         return
                     }
-                    continuation.resume(returning: HTTPResponse(statusCode: http.statusCode, body: data))
+                    continuation.resume(returning: HTTPResponse(
+                        statusCode: http.statusCode, body: data,
+                        retryAfterHeader: http.value(forHTTPHeaderField: "Retry-After")
+                    ))
                 }
                 // Store BEFORE resume so cancellation can reach the task. `store` also handles the
                 // already-cancelled race (see TaskBox): if cancellation fired first, it cancels now.
