@@ -4,10 +4,6 @@ Notable changes to `DIDWWVerification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking change to
 the public surface requires a major version.
 
-## Unreleased
-
-- Every request now carries a `User-Agent: didww-verification-ios/<version>` header.
-
 ## 1.1.0
 
 Released — 2026-10.
@@ -25,6 +21,7 @@ Released — 2026-10.
 - **The verification's code lifetime is set per application** (60–600 s, default 300) rather than a
   fixed duration — always read `Verification.expiresAt`/`VerificationResult.expiresAt` instead of
   assuming a constant.
+- Every request now carries a `User-Agent: didww-verification-ios/<version>` header.
 
 ## 1.0.0
 
