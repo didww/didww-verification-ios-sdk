@@ -25,6 +25,7 @@ struct RequestFactory: Sendable {
         request.httpMethod = method
         request.setValue(auth.headerValue, forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(SDKVersion.userAgent, forHTTPHeaderField: "User-Agent")
         return request
     }
 

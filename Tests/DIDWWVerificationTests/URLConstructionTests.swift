@@ -40,6 +40,11 @@ final class URLConstructionTests: XCTestCase {
         XCTAssertEqual(request.timeoutInterval, 12, accuracy: 0.001)
     }
 
+    func testDefaultUserAgentHeader() {
+        let request = factory("https://x.example").request(method: "GET", path: ["verifications"])
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "didww-verification-ios/\(SDKVersion.current)")
+    }
+
     // MARK: - By-number paths (normalization happens in the client, so these go through it)
 
     func testByNumberPathIsDigitsOnly() async throws {
