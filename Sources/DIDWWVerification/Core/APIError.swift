@@ -37,12 +37,18 @@ public struct APIErrorItem: Sendable, Equatable {
     /// Human-readable text for the slug.
     public let detail: String
     /// Whole seconds to wait before trying again, read from the response's `Retry-After` header.
-    /// Only ever non-`nil` on the 429 `destination_in_cooldown` cooldown — `nil` on every other
-    /// error, and on a 429 whose header the server omitted or sent as anything other than a
-    /// non-negative integer (e.g. an HTTP-date).
+    /// Set whenever the response carries a non-negative integer `Retry-After`; the API sends one
+    /// only with the 429 `destination_in_cooldown`. `nil` when the header is absent or anything
+    /// else (e.g. an HTTP-date).
     public let retryAfter: TimeInterval?
 
-    public init(code: String, detail: String, retryAfter: TimeInterval? = nil) {
+    /// Kept as its own overload, not folded into a defaulted parameter, so `APIErrorItem.init`
+    /// still resolves as a two-argument function for 1.0.0 callers.
+    public init(code: String, detail: String) {
+        self.init(code: code, detail: detail, retryAfter: nil)
+    }
+
+    public init(code: String, detail: String, retryAfter: TimeInterval?) {
         self.code = code
         self.detail = detail
         self.retryAfter = retryAfter
