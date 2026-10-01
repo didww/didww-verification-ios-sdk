@@ -90,8 +90,8 @@ func makeClient(
 }
 
 /// Build an `HTTPResponse` from a JSON string.
-func httpResponse(_ json: String, status: Int = 200) -> HTTPResponse {
-    HTTPResponse(statusCode: status, body: Data(json.utf8))
+func httpResponse(_ json: String, status: Int = 200, retryAfterHeader: String? = nil) -> HTTPResponse {
+    HTTPResponse(statusCode: status, body: Data(json.utf8), retryAfterHeader: retryAfterHeader)
 }
 
 /// Decode the `data` object of a recorded request's JSON body.

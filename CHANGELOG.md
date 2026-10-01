@@ -14,7 +14,9 @@ Released — 2026-10.
 - **`destination_in_cooldown` is a known `APIErrorCode`.** A `start` too soon after a non-denied one
   for the same app + destination now types via `item.known`; it still surfaces as
   `APIError.unexpectedStatus(code: 429, items:)` in this release — a dedicated `APIError` case is
-  deferred to a future major version.
+  deferred to a future major version. Each `APIErrorItem` now also carries `retryAfter: TimeInterval?`,
+  the server's `Retry-After` header as whole seconds, so a caller can back off for exactly as long as
+  asked instead of guessing a fixed delay.
 - **Redaction widened from a fixed 6-digit code to the server-chosen 4–8 digit range**, since the
   code length is now configurable per application. Canonical UUIDs (verification ids) pass through
   the logger intact instead of having a digit run inside them masked.
