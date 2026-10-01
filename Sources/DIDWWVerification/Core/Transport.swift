@@ -8,8 +8,16 @@ struct HTTPResponse: Sendable, Equatable {
     let statusCode: Int
     let body: Data
     /// The `Retry-After` header, verbatim and unparsed — `nil` when the response sent none.
-    /// Defaulted so every existing call site (production and tests) still compiles.
-    let retryAfterHeader: String? = nil
+    let retryAfterHeader: String?
+
+    /// Explicit rather than the synthesized memberwise init, so `retryAfterHeader` can default to
+    /// `nil` — a `let` with an inline default is fixed at declaration and gets no initializer
+    /// parameter at all, defaulted or otherwise.
+    init(statusCode: Int, body: Data, retryAfterHeader: String? = nil) {
+        self.statusCode = statusCode
+        self.body = body
+        self.retryAfterHeader = retryAfterHeader
+    }
 }
 
 /// The client depends on this protocol, not on `URLSession` directly, so tests can inject a fake
