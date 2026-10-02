@@ -5,15 +5,15 @@ It wraps three endpoints (start / status / submit) over two channels (SMS, callo
 `async/await` surface, typed models, and a closed, catchable error taxonomy.
 
 - **Zero third-party runtime dependencies** — `URLSession` + `Codable` only.
-- **iOS 13+**, `async/await` throughout (back-deployed — see *Requirements*).
+- **iOS 15+**, `async/await` throughout.
 - Swift Package Manager or CocoaPods.
 
 ## Requirements
 
-- **Runtime:** iOS 13.0+ (or macOS 10.15+ for the CLI and tests).
+- **Runtime:** iOS 15.0+ (or macOS 10.15+ for the CLI and tests).
 - **Build toolchain:** Swift 6.1 / Xcode 16.3+. This is the floor for *building* the package, not
-  for running it — the library it produces deploys to iOS 13.
-- **Concurrency:** `async/await` back-deploys to iOS 13, but `URLSession.data(for:)` is iOS 15+, so
+  for running it — the library it produces deploys to iOS 15.
+- **Concurrency:** `URLSession.data(for:)` needs macOS 12, above the macOS 10.15 host floor, so
   the SDK bridges the completion-handler API internally and wires `Task` cancellation through it.
   Nothing about that is visible in the public surface.
 

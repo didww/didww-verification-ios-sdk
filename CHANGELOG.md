@@ -8,6 +8,8 @@ the public surface requires a major version.
 
 Released — 2026-10.
 
+- **Minimum iOS raised from 13.0 to 15.0**, in both `Package.swift` and the podspec. Xcode 27 can
+  no longer build for an earlier deployment target.
 - **`codeLength` on the delivery-method block.** `Verification.Details.SMS` and `.Callout` both gain
   a `codeLength: Int?` — the OTP code length the application is configured to send, 4–8, set per
   application.

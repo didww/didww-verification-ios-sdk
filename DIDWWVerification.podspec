@@ -17,7 +17,7 @@ Pod::Spec.new do |s|
   # resolve it — create the tag at release time, matching s.version exactly (no `v` prefix).
   s.source           = { :git => 'https://github.com/didww/didww-verification-ios-sdk.git', :tag => s.version.to_s }
 
-  s.ios.deployment_target = '13.0'
+  s.ios.deployment_target = '15.0'
   s.swift_versions   = ['5.9']
 
   s.source_files     = 'Sources/DIDWWVerification/**/*.swift'

@@ -1,9 +1,9 @@
 // swift-tools-version:6.1
 // swift-tools-version = the minimum toolchain that can BUILD this package (≈ Xcode 16.3). It is
-// the BUILD floor only, and is independent of the iOS 13 runtime DEPLOYMENT floor declared below:
-// building the package needs a recent Xcode, the library it produces runs on iOS 13.
+// the BUILD floor only, and is independent of the iOS 15 runtime DEPLOYMENT floor declared below:
+// building the package needs a recent Xcode, the library it produces runs on iOS 15.
 //
-// Language mode: the toolchain default (Swift 6 strict concurrency). The iOS-13 URLSession
+// Language mode: the toolchain default (Swift 6 strict concurrency). The URLSession
 // cancellation shim therefore carries an explicit `@unchecked Sendable`, lock-guarded task box —
 // which is the correct design in ANY language mode (the cancel race is a runtime concern, not a
 // compile flag), so there is no benefit to pinning Swift 5 mode.
@@ -12,12 +12,11 @@ import PackageDescription
 
 let package = Package(
     name: "DIDWWVerification",
-    // Deployment floors. iOS 13 is the product floor. macOS 10.15 is declared so the library,
-    // the tests and SampleCLI build and run on a macOS host via `swift test` / `swift run`.
-    // 10.15 (Catalina) is also the floor where Swift's back-deployed
-    // concurrency runtime (async/await) is available — the contemporaneous macOS to iOS 13.
+    // Deployment floors. iOS 15 is the product floor, the lowest Xcode 27 can target. macOS 10.15
+    // is declared so the library, the tests and SampleCLI build and run on a macOS host via
+    // `swift test` / `swift run`; it is the floor of Swift's back-deployed concurrency runtime.
     platforms: [
-        .iOS(.v13),
+        .iOS(.v15),
         .macOS(.v10_15),
     ],
     products: [

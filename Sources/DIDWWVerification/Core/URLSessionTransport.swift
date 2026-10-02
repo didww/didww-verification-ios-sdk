@@ -2,8 +2,8 @@ import Foundation
 
 /// The real transport, over `URLSession`.
 ///
-/// `async`/`await` back-deploys to iOS 13 but `URLSession.data(for:)` is iOS 15+, so to hold the
-/// iOS 13 floor this bridges the completion-handler `dataTask` with
+/// `URLSession.data(for:)` needs macOS 12, above the package's macOS 10.15 host floor, so this
+/// bridges the completion-handler `dataTask` with
 /// `withCheckedThrowingContinuation` and wires task cancellation through
 /// `withTaskCancellationHandler`.
 struct URLSessionTransport: Transport {
