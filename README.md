@@ -104,6 +104,21 @@ matching `delivery_method` and silently ignores the rest, so passing options alo
 `method:` throws `VerificationError.channelMismatch` before any network call rather than letting the
 request come back as a healthy `201` with the defaults applied.
 
+### Custom data
+
+`custom:` is free-form text (up to 4096 characters) sent at the top level of `data` and forwarded to
+your callback server, so it can allow or deny the verification with that context. It is not returned
+in any response. It is sent from the device, so the callback server must validate it. Longer values
+are rejected as `APIErrorCode.customTooLong`.
+
+```swift
+try await client.start(destination: "+4915112345678", method: .sms, custom: "signup-flow-b")
+```
+
+```json
+{ "data": { "destination": "+4915112345678", "delivery_method": "sms", "custom": "signup-flow-b" } }
+```
+
 ### Languages
 
 Both channels that carry content take a `languages` list — the template an SMS is written in, and

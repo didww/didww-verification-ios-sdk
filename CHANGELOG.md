@@ -4,6 +4,15 @@ Notable changes to `DIDWWVerification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking change to
 the public surface requires a major version.
 
+## 1.2.0
+
+Unreleased.
+
+- **`custom` on `start`.** `start(destination:method:sms:callout:custom:)` takes an optional
+  free-form string (up to 4096 characters) that is forwarded to your callback server. It is not
+  returned in responses, and comes from the device, so the callback server must validate it. Over-long
+  values fail with the new known `APIErrorCode.customTooLong` (`custom_too_long`).
+
 ## 1.1.0
 
 Released — 2026-10.

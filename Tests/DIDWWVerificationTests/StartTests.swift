@@ -28,6 +28,27 @@ final class StartTests: XCTestCase {
         XCTAssertFalse(verification.isExpired)
     }
 
+    // `custom` is a top-level member of `data`, not part of a channel block.
+    func testStartSendsCustomAtTopLevel() async throws {
+        let mock = MockTransport(httpResponse(Fixtures.startSMS(), status: 201))
+        let client = makeClient(transport: mock)
+
+        _ = try await client.start(destination: "+15551234567", method: .sms, custom: "session=42")
+
+        let body = requestBodyData(mock.recordedRequests[0])
+        XCTAssertEqual(body["custom"] as? String, "session=42")
+        XCTAssertNil((body["sms"] as? [String: Any])?["custom"])
+    }
+
+    func testStartOmitsCustomWhenNil() async throws {
+        let mock = MockTransport(httpResponse(Fixtures.startSMS(), status: 201))
+        let client = makeClient(transport: mock)
+
+        _ = try await client.start(destination: "+15551234567", method: .sms)
+
+        XCTAssertFalse(requestBodyData(mock.recordedRequests[0]).keys.contains("custom"))
+    }
+
     // `callout` takes the same language list as `sms`, in its own block.
     func testStartCalloutSendsLanguagesInItsOwnBlock() async throws {
         let mock = MockTransport(httpResponse(Fixtures.startCallout(), status: 201))
