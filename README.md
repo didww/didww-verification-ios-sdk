@@ -168,6 +168,13 @@ is always a deliberate choice. The SDK appends `/api/v1` to the resolved host.
 let client = VerificationClient(environment: .sandbox, auth: .basic(appKey: "…", secret: "…"))
 ```
 
+### Testing
+
+Use the sandbox environment (`.sandbox`) with the reserved test numbers. `+12015550100` to
+`+12015550109` always succeed: the code is `1` repeated to the application's code length, for
+example `111111` for six digits. Other reserved ranges simulate failures. The full table is in
+[Testing on sandbox](https://doc.didww.com/otp-verification/testing.html).
+
 ### Authentication
 
 The API ranks three auth modes. This SDK implements the two usable from a device:

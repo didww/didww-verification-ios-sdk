@@ -147,12 +147,11 @@ final class ErrorMappingTests: XCTestCase {
         "denied_missing_callback_url", "destination_blank", "destination_in_cooldown",
         "destination_invalid", "destination_not_supported_for_channel", "dispatch_failed",
         "expired", "internal_error", "languages_invalid", "not_found", "not_ready_to_report",
-        "parameter_missing", "stale_dispatch", "superseded", "too_many_attempts", "unauthorized",
-        "validation_failed",
+        "parameter_missing", "superseded", "too_many_attempts", "unauthorized", "validation_failed",
     ]
 
     func testEveryServerSlugIsModelledByExactlyOneType() {
-        XCTAssertEqual(Self.serverSlugs.count, 32, "the server registry has 32 slugs")
+        XCTAssertEqual(Self.serverSlugs.count, 31, "the server registry has 31 slugs")
         for slug in Self.serverSlugs {
             let isEnvelopeError = APIErrorCode(rawValue: slug) != nil
             let isOutcomeReason = Verification.Reason(wireValue: slug) != .other(slug)

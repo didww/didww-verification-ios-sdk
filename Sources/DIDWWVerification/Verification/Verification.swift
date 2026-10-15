@@ -113,7 +113,6 @@ extension Verification {
     /// `failed`/`denied`/`expired` outcome — not an error, since a non-verified outcome is still a
     /// successful HTTP call. Fail-open like ``Status``: an unknown slug decodes to `.other`.
     public enum Reason: Sendable, Equatable {
-        case numberUnreachable
         case failedToDeliver
         case expired
         case tooManyAttempts
@@ -134,7 +133,6 @@ extension Verification {
 
         init(wireValue: String) {
             switch wireValue {
-            case "stale_dispatch": self = .numberUnreachable
             case "dispatch_failed": self = .failedToDeliver
             case "expired": self = .expired
             case "too_many_attempts": self = .tooManyAttempts

@@ -55,7 +55,7 @@ final class EnvelopeDecodingTests: XCTestCase {
     }
 
     func testReasonWireValueMapping() {
-        XCTAssertEqual(Verification.Reason(wireValue: "stale_dispatch"), .numberUnreachable)
+        XCTAssertEqual(Verification.Reason(wireValue: "stale_dispatch"), .other("stale_dispatch"))
         XCTAssertEqual(Verification.Reason(wireValue: "dispatch_failed"), .failedToDeliver)
         XCTAssertEqual(Verification.Reason(wireValue: "expired"), .expired)
         XCTAssertEqual(Verification.Reason(wireValue: "too_many_attempts"), .tooManyAttempts)
