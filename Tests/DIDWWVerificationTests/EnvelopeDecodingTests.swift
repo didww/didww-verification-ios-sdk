@@ -64,6 +64,10 @@ final class EnvelopeDecodingTests: XCTestCase {
         XCTAssertEqual(Verification.Reason(wireValue: "denied_missing_callback_url"), .deniedMissingCallbackURL)
         XCTAssertEqual(Verification.Reason(wireValue: "denied_invalid_callback_response"), .deniedInvalidCallbackResponse)
         XCTAssertEqual(Verification.Reason(wireValue: "superseded"), .superseded)
+        XCTAssertEqual(Verification.Reason(wireValue: "application_paused"), .applicationPaused)
+        XCTAssertEqual(Verification.Reason(wireValue: "destination_country_disabled"), .destinationCountryDisabled)
+        XCTAssertEqual(Verification.Reason(wireValue: "destination_not_supported_for_channel"),
+                       .destinationNotSupportedForChannel)
         // The contract has no flat `denied` slug and this enum has no case for it — it fails open
         // like any other unmodeled value.
         XCTAssertEqual(Verification.Reason(wireValue: "denied"), .other("denied"))

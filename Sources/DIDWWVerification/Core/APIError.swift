@@ -38,8 +38,8 @@ public struct APIErrorItem: Sendable, Equatable {
     public let detail: String
     /// Whole seconds to wait before trying again, read from the response's `Retry-After` header.
     /// Set whenever the response carries a non-negative integer `Retry-After`; the API sends one
-    /// only with the 429 `destination_in_cooldown`. `nil` when the header is absent or anything
-    /// else (e.g. an HTTP-date).
+    /// with every 429. It can be days for `volume_limit_reached`.
+    /// `nil` when the header is absent or anything else (e.g. an HTTP-date).
     public let retryAfter: TimeInterval?
 
     /// Kept as its own overload, not folded into a defaulted parameter, so `APIErrorItem.init`

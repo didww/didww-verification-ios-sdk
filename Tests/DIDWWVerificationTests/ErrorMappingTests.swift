@@ -135,31 +135,41 @@ final class ErrorMappingTests: XCTestCase {
 
     // MARK: - Registry coverage
 
-    /// The server's `ErrorRegistry::Slugs`, verbatim. Every slug must be modelled by exactly one of
+    /// The server's error slugs, verbatim. Every slug must be modelled by exactly one of
     /// the two types — `APIErrorCode` for envelope errors, `Verification.Reason` for the outcome
-    /// slug on a 2xx verification. This is the check that would have caught `unauthorized` and
-    /// `app_hash_invalid` going missing.
+    /// slug on a 2xx verification — except those in ``dualSlugs``, modelled by both (the envelope
+    /// case is kept for compatibility).
+    /// A slug the server adds fails here until one of the types models it.
     private static let serverSlugs = [
-        "already_verified", "app_hash_invalid", "application_deleted", "balance_insufficient",
-        "cli_blank", "cli_invalid", "cli_value_present", "code_blank", "code_invalid",
-        "code_value_present", "delivery_method_blank", "delivery_method_inclusion",
-        "delivery_method_invalid", "denied_by_callback", "denied_invalid_callback_response",
-        "denied_missing_callback_url", "destination_blank", "destination_in_cooldown",
+        "already_verified", "app_hash_invalid", "application_deleted", "application_paused",
+        "autofill_invalid", "balance_insufficient", "code_blank", "code_invalid", "custom_too_long",
+        "delivery_method_blank", "delivery_method_inclusion", "delivery_method_invalid",
+        "denied_by_callback", "denied_invalid_callback_response", "denied_missing_callback_url",
+        "destination_blank", "destination_country_disabled", "destination_in_cooldown",
         "destination_invalid", "destination_not_supported_for_channel", "dispatch_failed",
         "expired", "internal_error", "languages_invalid", "not_found", "not_ready_to_report",
-        "parameter_missing", "stale_dispatch", "superseded", "too_many_attempts", "unauthorized",
-        "validation_failed",
+        "parameter_missing", "rate_limit_failed_auth", "rate_limit_per_account", "rate_limit_per_ip",
+        "rate_limit_public_per_account", "sms_domain_not_configured", "superseded",
+        "template_group_not_found", "too_many_attempts", "unauthorized", "validation_failed",
+        "volume_limit_reached",
     ]
 
+    /// Modelled by both types; the envelope case is kept for compatibility.
+    private static let dualSlugs: Set = ["destination_not_supported_for_channel"]
+
     func testEveryServerSlugIsModelledByExactlyOneType() {
-        XCTAssertEqual(Self.serverSlugs.count, 32, "the server registry has 32 slugs")
+        XCTAssertEqual(Self.serverSlugs.count, 38, "the server registry has 38 slugs")
         for slug in Self.serverSlugs {
             let isEnvelopeError = APIErrorCode(rawValue: slug) != nil
             let isOutcomeReason = Verification.Reason(wireValue: slug) != .other(slug)
-            XCTAssertTrue(isEnvelopeError || isOutcomeReason, "'\(slug)' is not modelled by either type")
-            XCTAssertFalse(isEnvelopeError && isOutcomeReason, "'\(slug)' is modelled by both types")
+            if Self.dualSlugs.contains(slug) {
+                XCTAssertTrue(isEnvelopeError && isOutcomeReason, "'\(slug)' must be modelled by both types")
+            } else {
+                XCTAssertTrue(isEnvelopeError || isOutcomeReason, "'\(slug)' is not modelled by either type")
+                XCTAssertFalse(isEnvelopeError && isOutcomeReason, "'\(slug)' is modelled by both types")
+            }
         }
-        XCTAssertEqual(APIErrorCode.allCases.count, 23)
+        XCTAssertEqual(APIErrorCode.allCases.count, 32)
     }
 
     /// A 429 for a destination in cooldown maps to `.unexpectedStatus` — a dedicated `APIError` case
@@ -242,6 +252,49 @@ final class ErrorMappingTests: XCTestCase {
         let a = APIErrorItem(code: "destination_in_cooldown", detail: "destination is in cooldown", retryAfter: 17)
         let b = APIErrorItem(code: "destination_in_cooldown", detail: "destination is in cooldown", retryAfter: 42)
         XCTAssertEqual(a, b)
+    }
+
+    /// Every 429 slug types and carries its `Retry-After`.
+    func test429RateAndVolumeLimitsTypeKnownWithRetryAfter() async {
+        let cases: [(String, String, APIErrorCode, TimeInterval)] = [
+            ("rate_limit_per_ip", "1", .rateLimitPerIP, 1),
+            ("rate_limit_failed_auth", "1", .rateLimitFailedAuth, 1),
+            ("rate_limit_per_account", "1", .rateLimitPerAccount, 1),
+            ("rate_limit_public_per_account", "1", .rateLimitPublicPerAccount, 1),
+            ("volume_limit_reached", "43200", .volumeLimitReached, 43200),
+        ]
+        for (slug, header, known, wait) in cases {
+            let mock = MockTransport(httpResponse(
+                Fixtures.errorBody([(code: slug, detail: "limited")]), status: 429, retryAfterHeader: header
+            ))
+            do {
+                _ = try await makeClient(transport: mock).start(destination: "+15551234567", method: .sms)
+                XCTFail("expected error for '\(slug)'")
+            } catch {
+                guard case .unexpectedStatus(429, let items) = error as? APIError else {
+                    return XCTFail("expected .unexpectedStatus(429) for '\(slug)'")
+                }
+                XCTAssertEqual(items.first?.known, known)
+                XCTAssertEqual(items.first?.retryAfter, wait)
+            }
+        }
+    }
+
+    func test422NewStartSlugsTypeKnown() async {
+        let cases: [(String, APIErrorCode)] = [
+            ("custom_too_long", .customTooLong),
+            ("autofill_invalid", .autofillInvalid),
+            ("sms_domain_not_configured", .smsDomainNotConfigured),
+            ("template_group_not_found", .templateGroupNotFound),
+            ("destination_not_supported_for_channel", .destinationNotSupportedForChannel),
+        ]
+        for (slug, known) in cases {
+            let body = Fixtures.errorBody([(code: slug, detail: "rejected")])
+            guard case .validationFailed(let items) = await errorFrom(status: 422, body: body) else {
+                return XCTFail("expected .validationFailed for '\(slug)'")
+            }
+            XCTAssertEqual(items.first?.known, known)
+        }
     }
 
     /// `app_hash_invalid` is a request-validation slug, so it belongs on the envelope type.

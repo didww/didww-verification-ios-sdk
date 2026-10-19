@@ -25,7 +25,7 @@ In Xcode: **File → Add Package Dependencies…** and enter the repository URL.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/didww/didww-verification-ios-sdk.git", from: "1.0.0")
+    .package(url: "https://github.com/didww/didww-verification-ios-sdk.git", from: "1.2.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -39,7 +39,7 @@ targets: [
 Add it to your `Podfile`:
 
 ```ruby
-pod 'DIDWWVerification', '~> 1.0'
+pod 'DIDWWVerification', '~> 1.2'
 ```
 
 ## Quick start
@@ -103,6 +103,54 @@ try await client.start(
 matching `delivery_method` and silently ignores the rest, so passing options alongside a different
 `method:` throws `VerificationError.channelMismatch` before any network call rather than letting the
 request come back as a healthy `201` with the defaults applied.
+
+### Custom data
+
+`custom:` is free-form text (up to 4096 characters) sent at the top level of `data` and forwarded to
+your callback server, so it can allow or deny the verification with that context. It is not returned
+in any response. It is sent from the device, so the callback server must validate it. Longer values
+are rejected as `APIErrorCode.customTooLong`.
+
+```swift
+try await client.start(destination: "+4915112345678", method: .sms, custom: "signup-flow-b")
+```
+
+```json
+{ "data": { "destination": "+4915112345678", "delivery_method": "sms", "custom": "signup-flow-b" } }
+```
+
+### SMS autofill
+
+`SMSOptions.autofill` picks how the message is framed for autofill; leave it `nil` for the
+application's default. `.domain` adds the domain-bound line for the application's SMS domain, so iOS
+offers the code above the keyboard; `.disabled` sends no marker (`none` on the wire). The app-hash
+framing is Android-only and not offered here.
+
+```swift
+try await client.start(destination: "+4915112345678", method: .sms, sms: .init(autofill: .domain))
+```
+
+The marker the server stored comes back as `details`' `sms.autofill` — `type` (`.appHash`,
+`.domain` or `.other`) and `value`, the domain for `.domain`. `.domain` on an application with no SMS
+domain is rejected as `APIErrorCode.smsDomainNotConfigured`, and a malformed `autofill` as
+`APIErrorCode.autofillInvalid`.
+
+### Template groups
+
+`templateGroup` picks one of your template groups instead of the application's default, on either
+channel. An unknown name is rejected as `APIErrorCode.templateGroupNotFound`.
+
+```swift
+sms: .init(templateGroup: "checkout")
+callout: .init(templateGroup: "checkout")
+```
+
+Both blocks in the response report what happened: `templateGroup` (the group applied, or `nil`),
+`templateGroupUsed`, and `templateFallbackReason` — why the group's template was not used
+(`.languageMissing`, `.versionPending`, `.versionRejected`, `.audioNotReady`, `.groupMissing`, or
+`.other` for a reason added later). When no template group applies at all, `templateGroupUsed` is
+`false` and the reason is `nil`; `.groupMissing` comes with `templateGroup` `nil`, because the
+requested or default group no longer exists.
 
 ### Languages
 
@@ -242,17 +290,28 @@ do {
 }
 ```
 
-> **429 — a `start` too soon after a non-denied one for the same destination.** The server enforces
-> a short cooldown between starts; this SDK version still surfaces it as
-> `APIError.unexpectedStatus(code: 429, items:)`, with `items.first?.known == .destinationInCooldown`
-> — a dedicated `APIError` case is deferred to a future major version. Each item's `retryAfter`
-> carries the server's `Retry-After` header as whole seconds to wait before trying again; it's `nil`
-> if the response sent no usable header. The SDK never retries a `start` for you.
+> **429 — a limit was hit.** This SDK version surfaces it as
+> `APIError.unexpectedStatus(code: 429, items:)` — a dedicated `APIError` case is deferred to a future
+> major version — and `items.first?.known` says which limit:
+>
+> - `.destinationInCooldown` — a verification for this destination was requested too recently.
+> - `.rateLimitPerIP` — too many requests from this IP address.
+> - `.rateLimitFailedAuth` — too many failed authentication attempts from this IP address.
+> - `.rateLimitPerAccount` — too many requests for this account.
+> - `.rateLimitPublicPerAccount` — too many public requests for this account.
+> - `.volumeLimitReached` — the application reached its daily or monthly verification limit for
+>   this delivery method. `Retry-After` can be long (days): surface it to the user instead of
+>   retrying, or contact support to raise the limit.
+>
+> Each item's `retryAfter` carries the server's `Retry-After` header as whole seconds to wait before
+> trying again; it's `nil` if the response sent no usable header. The SDK never retries for you.
 >
 > ```swift
 > } catch APIError.unexpectedStatus(let code, let items) where code == 429 {
->     if let wait = items.first?.retryAfter {
->         scheduleRetry(after: wait)          // wait seconds, then start again
+>     if items.first?.known == .volumeLimitReached {
+>         showLimitReached()                  // can be days — don't retry on a timer
+>     } else if let wait = items.first?.retryAfter {
+>         scheduleRetry(after: wait)          // wait `retryAfter` seconds, then try again
 >     } else {
 >         scheduleRetry(after: 30)            // no header — fall back to a fixed backoff
 >     }
@@ -290,7 +349,9 @@ default:
 ```
 
 This matters most with `.public` auth, where a denial is a routine outcome rather than an edge
-case.
+case. A start can also be refused this way for other reasons: `.applicationPaused` and
+`.destinationCountryDisabled` (status `denied`), and `.destinationNotSupportedForChannel` (status
+`failed`) for a destination the channel can't reach.
 
 ### Reading the delivery-method block
 
@@ -298,7 +359,8 @@ case.
 returned by `start` and on every `VerificationResult`. The `sms` channel returns the `template` and
 the `language` it was rendered in; `callout` returns the `language` it is announced in. Both also
 carry `codeLength` — the OTP code length the application is configured to send, 4–8 — so you can
-size a code-entry input from it.
+size a code-entry input from it — and the template-group fields (see *Template groups*); `sms` also
+carries the stored `autofill` marker.
 
 ```swift
 switch result.details {
