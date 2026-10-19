@@ -343,6 +343,9 @@ case .pending:
 case .denied:
     // Public auth: your callback declined, or the application has no callback_url.
     show(verification.errorDetail ?? "verification denied")
+case .failed:
+    // The destination can't be reached on this channel.
+    show(verification.errorDetail ?? "verification failed")
 default:
     show("unexpected start status: \(verification.status)")
 }
