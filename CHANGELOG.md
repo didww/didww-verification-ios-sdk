@@ -25,8 +25,8 @@ Unreleased.
   `templateGroupNotFound`.
 - **New 429 error codes:** `rateLimitPerIP`, `rateLimitFailedAuth`, `rateLimitPerAccount`,
   `rateLimitPublicPerAccount` and `volumeLimitReached` (the application reached its daily or
-  monthly verification limit for the delivery method; its `Retry-After` can be days). All still
-  surface as `APIError.unexpectedStatus(code: 429, items:)`.
+  monthly verification limit; its `Retry-After` can be days). All still surface as
+  `APIError.unexpectedStatus(code: 429, items:)`.
 - **New `Verification.Reason` cases:** `applicationPaused` and `destinationCountryDisabled` (status
   `denied`), and `destinationNotSupportedForChannel` (status `failed`).
 
@@ -40,6 +40,8 @@ Unreleased.
 - The new `APIErrorCode` and `Verification.Reason` cases make a `switch` over either enum with no
   `default` non-exhaustive, so it needs the new cases added. The three new reasons used to decode
   as `.other("<slug>")`; code matching on that should match the typed case instead.
+- Docs: a Testing section on the sandbox environment, which sends nothing and gives an outcome only
+  for the reserved test numbers.
 
 ### Deprecated
 

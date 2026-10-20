@@ -216,6 +216,14 @@ is always a deliberate choice. The SDK appends `/api/v1` to the resolved host.
 let client = VerificationClient(environment: .sandbox, auth: .basic(appKey: "…", secret: "…"))
 ```
 
+### Testing
+
+The sandbox sends no real SMS and places no real calls. Only reserved test numbers get an outcome,
+each a fixed result such as delivered, failed or expired; a delivered one has a fixed code. A
+verification to any other number ends with status `failed` and error code `dispatch_failed`. The
+test numbers, their outcomes and the code to submit are listed in
+[Testing on sandbox](https://doc.didww.com/otp-verification/testing.html).
+
 ### Authentication
 
 The API ranks three auth modes. This SDK implements the two usable from a device:
@@ -299,9 +307,9 @@ do {
 > - `.rateLimitFailedAuth` — too many failed authentication attempts from this IP address.
 > - `.rateLimitPerAccount` — too many requests for this account.
 > - `.rateLimitPublicPerAccount` — too many public requests for this account.
-> - `.volumeLimitReached` — the application reached its daily or monthly verification limit for
->   this delivery method. `Retry-After` can be long (days): surface it to the user instead of
->   retrying, or contact support to raise the limit.
+> - `.volumeLimitReached` — the application reached its daily or monthly verification limit.
+>   `Retry-After` can be long (days): surface it to the user instead of retrying, or contact
+>   support to raise the limit.
 >
 > Each item's `retryAfter` carries the server's `Retry-After` header as whole seconds to wait before
 > trying again; it's `nil` if the response sent no usable header. The SDK never retries for you.
