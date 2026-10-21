@@ -40,8 +40,8 @@ Unreleased.
 - The new `APIErrorCode` and `Verification.Reason` cases make a `switch` over either enum with no
   `default` non-exhaustive, so it needs the new cases added. The three new reasons used to decode
   as `.other("<slug>")`; code matching on that should match the typed case instead.
-- Docs: a Testing section on the sandbox environment, which sends nothing and gives an outcome only
-  for the reserved test numbers.
+- Docs: a Testing section on the sandbox environment, which sends nothing and gives a predefined
+  result only for the reserved test numbers.
 
 ### Deprecated
 
