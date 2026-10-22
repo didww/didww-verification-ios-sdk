@@ -154,18 +154,57 @@ final class ForwardCompatibilityTests: XCTestCase {
     }
 
     /// The `sms` block as the server serializes it today. This SDK models neither
-    /// `interception_timeout` nor `app_hash` (both Android SMS Retriever concerns); pinned so the
-    /// keys it does model keep decoding beside them.
+    /// `interception_timeout` nor the deprecated flat `app_hash` (both Android SMS Retriever
+    /// concerns); pinned so the keys it does model keep decoding beside them.
     func testTheFullServerSMSBlockDecodesDownToTheKeysWeModel() async throws {
         let body = """
         {"data":{"id":"11111111-1111-1111-1111-111111111111","destination":"+15551234567",\
         "delivery_method":"sms","fee":"0.06","status":"pending","error_code":null,\
         "error_detail":null,"expires_at":"\(Fixtures.farFuture)",\
         "sms":{"template":"default_otp","language":"de-DE","interception_timeout":300,\
-        "code_length":6,"app_hash":"A1b2C3d4E5f"}}}
+        "code_length":6,"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"},"app_hash":"A1b2C3d4E5f",\
+        "template_group":"checkout","template_group_used":false,\
+        "template_fallback_reason":"language_missing"}}}
         """
         let result = try await makeClient(transport: MockTransport(httpResponse(body))).status(makeHandle())
-        XCTAssertEqual(result.details, .sms(.init(template: "default_otp", language: "de-DE", codeLength: 6)))
+        XCTAssertEqual(result.details, .sms(.init(
+            template: "default_otp", language: "de-DE", codeLength: 6,
+            autofill: .init(type: .appHash, value: "A1b2C3d4E5f"),
+            templateGroup: "checkout", templateGroupUsed: false, templateFallbackReason: .languageMissing
+        )))
+    }
+
+    /// For `domain`, the marker's value is the application's SMS domain. A marker type added later
+    /// decodes as `.other`.
+    func testSMSAutofillMarkerDecodesOpen() async throws {
+        for (type, kind) in [("domain", .domain), ("passkey", .other("passkey"))]
+            as [(String, Verification.Details.SMS.Autofill.Kind)] {
+            let body = """
+            {"data":{"id":"11111111-1111-1111-1111-111111111111","destination":"+15551234567",\
+            "delivery_method":"sms","status":"pending","expires_at":"\(Fixtures.farFuture)",\
+            "sms":{"template":"default_otp","autofill":{"type":"\(type)","value":"example.com"}}}}
+            """
+            let result = try await makeClient(transport: MockTransport(httpResponse(body))).status(makeHandle())
+            guard case .sms(let sms) = result.details else { return XCTFail("expected an sms block") }
+            XCTAssertEqual(sms.autofill, .init(type: kind, value: "example.com"))
+        }
+    }
+
+    /// The callout block reports its template group the same way, and an unknown fallback reason
+    /// keeps its raw value.
+    func testCalloutTemplateGroupFieldsDecodeOpen() async throws {
+        let body = """
+        {"data":{"id":"33333333-3333-3333-3333-333333333333","destination":"+15551234567",\
+        "delivery_method":"callout","status":"pending","expires_at":"\(Fixtures.farFuture)",\
+        "callout":{"language":"pt-BR","code_length":6,"template_group":"checkout",\
+        "template_group_used":false,"template_fallback_reason":"voice_missing"}}}
+        """
+        let result = try await makeClient(transport: MockTransport(httpResponse(body)))
+            .status(makeHandle(method: .callout))
+        XCTAssertEqual(result.details, .callout(.init(
+            language: "pt-BR", codeLength: 6, templateGroup: "checkout", templateGroupUsed: false,
+            templateFallbackReason: .other("voice_missing")
+        )))
     }
 
     /// A block short of a key the API marks required still yields the rest — the same fail-open

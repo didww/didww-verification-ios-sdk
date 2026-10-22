@@ -113,6 +113,10 @@ extension Verification {
     /// `failed`/`denied`/`expired` outcome — not an error, since a non-verified outcome is still a
     /// successful HTTP call. Fail-open like ``Status``: an unknown slug decodes to `.other`.
     public enum Reason: Sendable, Equatable {
+        /// Deprecated: the `stale_dispatch` slug, which the service no longer sends. These
+        /// verifications now arrive as ``failedToDeliver``. Removed in the next major version.
+        // Not `@available(*, deprecated)`: `init(wireValue:)` still maps the slug, and the attribute
+        // would warn on that use in every build of the package.
         case numberUnreachable
         case failedToDeliver
         case expired
@@ -129,6 +133,12 @@ extension Verification {
         /// A newer `start` for the same number replaced this verification. Only ever seen via
         /// by-id `status(_:)` — by-number always resolves the newest verification.
         case superseded
+        /// The application is paused. Status `denied`.
+        case applicationPaused
+        /// The destination's country is disabled in the account settings. Status `denied`.
+        case destinationCountryDisabled
+        /// The destination can't be reached over the requested channel. Status `failed`.
+        case destinationNotSupportedForChannel
         /// A slug this SDK version doesn't recognize.
         case other(String)
 
@@ -143,6 +153,9 @@ extension Verification {
             case "denied_missing_callback_url": self = .deniedMissingCallbackURL
             case "denied_invalid_callback_response": self = .deniedInvalidCallbackResponse
             case "superseded": self = .superseded
+            case "application_paused": self = .applicationPaused
+            case "destination_country_disabled": self = .destinationCountryDisabled
+            case "destination_not_supported_for_channel": self = .destinationNotSupportedForChannel
             default: self = .other(wireValue)
             }
         }
@@ -171,6 +184,63 @@ extension Verification {
             public let language: String?
             /// The OTP code length, 4–8, set per application. Size a code-entry input from it.
             public let codeLength: Int?
+            /// The autofill marker the message carries; `nil` when it carries none.
+            public let autofill: Autofill?
+            /// The template group applied, or `nil` when none was.
+            public let templateGroup: String?
+            /// Whether the message was rendered from ``templateGroup``'s template.
+            public let templateGroupUsed: Bool?
+            /// Why the group's template was not used; `nil` when it was, or when no template group
+            /// applies at all (then ``templateGroupUsed`` is `false`).
+            public let templateFallbackReason: TemplateFallbackReason?
+
+            init(template: String?, language: String?, codeLength: Int?, autofill: Autofill? = nil,
+                 templateGroup: String? = nil, templateGroupUsed: Bool? = nil,
+                 templateFallbackReason: TemplateFallbackReason? = nil) {
+                self.template = template
+                self.language = language
+                self.codeLength = codeLength
+                self.autofill = autofill
+                self.templateGroup = templateGroup
+                self.templateGroupUsed = templateGroupUsed
+                self.templateFallbackReason = templateFallbackReason
+            }
+
+            /// The autofill marker the server stored for the message.
+            public struct Autofill: Sendable, Equatable {
+                public let type: Kind
+                /// The Android app hash, or the domain for ``Kind/domain``.
+                public let value: String
+
+                /// Fail-open: a marker added by the server later decodes as `.other`.
+                public enum Kind: Sendable, Equatable {
+                    /// Android SMS Retriever framing — set by a request from an Android app.
+                    case appHash
+                    /// The domain-bound line iOS reads to suggest the code.
+                    case domain
+                    /// A marker this SDK version doesn't know about. Carries the raw wire string.
+                    case other(String)
+
+                    init(wireValue: String) {
+                        switch wireValue {
+                        case "app_hash": self = .appHash
+                        case "domain": self = .domain
+                        default: self = .other(wireValue)
+                        }
+                    }
+                }
+
+                init(type: Kind, value: String) {
+                    self.type = type
+                    self.value = value
+                }
+
+                /// `nil` when the block is short of either key.
+                init?(dto: AutofillInfo) {
+                    guard let type = dto.type, let value = dto.value else { return nil }
+                    self.init(type: Kind(wireValue: type), value: value)
+                }
+            }
         }
 
         public struct Callout: Sendable, Equatable {
@@ -179,6 +249,54 @@ extension Verification {
             public let language: String?
             /// The OTP code length, 4–8, set per application. Size a code-entry input from it.
             public let codeLength: Int?
+            /// The template group applied, or `nil` when none was.
+            public let templateGroup: String?
+            /// Whether the call was announced from ``templateGroup``'s template.
+            public let templateGroupUsed: Bool?
+            /// Why the group's template was not used; `nil` when it was, or when no template group
+            /// applies at all (then ``templateGroupUsed`` is `false`).
+            public let templateFallbackReason: TemplateFallbackReason?
+
+            init(language: String?, codeLength: Int?, templateGroup: String? = nil,
+                 templateGroupUsed: Bool? = nil, templateFallbackReason: TemplateFallbackReason? = nil) {
+                self.language = language
+                self.codeLength = codeLength
+                self.templateGroup = templateGroup
+                self.templateGroupUsed = templateGroupUsed
+                self.templateFallbackReason = templateFallbackReason
+            }
+        }
+    }
+}
+
+// MARK: - TemplateFallbackReason
+
+extension Verification {
+    /// Why a requested template group's template was not used, so the default one was. Fail-open
+    /// like ``Status``: an unknown reason decodes to `.other`.
+    public enum TemplateFallbackReason: Sendable, Equatable {
+        /// The group has no template in the language used.
+        case languageMissing
+        /// The group's template is still awaiting review.
+        case versionPending
+        /// The group's template was rejected in review.
+        case versionRejected
+        /// The group's callout template has no recording yet.
+        case audioNotReady
+        /// The group no longer exists.
+        case groupMissing
+        /// A reason this SDK version doesn't recognize.
+        case other(String)
+
+        init(wireValue: String) {
+            switch wireValue {
+            case "language_missing": self = .languageMissing
+            case "version_pending": self = .versionPending
+            case "version_rejected": self = .versionRejected
+            case "audio_not_ready": self = .audioNotReady
+            case "group_missing": self = .groupMissing
+            default: self = .other(wireValue)
+            }
         }
     }
 }

@@ -4,6 +4,53 @@ Notable changes to `DIDWWVerification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking change to
 the public surface requires a major version.
 
+## 1.2.0
+
+Released — 2026-10.
+
+### Added
+
+- **`custom` on `start`.** `start(destination:method:sms:callout:custom:)` takes an optional
+  free-form string (up to 4096 characters) that is forwarded to your callback server. It is not
+  returned in responses, and comes from the device, so the callback server must validate it.
+  Over-long values fail with the new `APIErrorCode.customTooLong`.
+- **`SMSOptions.autofill`** — `.domain` adds the domain-bound line for the application's SMS domain;
+  `.disabled` sends no marker. `Verification.Details.SMS.autofill` reads back the stored marker,
+  `app_hash` or `domain`, whose `value` is the hash or the domain. New error codes
+  `autofillInvalid` and `smsDomainNotConfigured`.
+- **`templateGroup` on `SMSOptions` and `CalloutOptions`**, to pick a template group instead of the
+  application's default. `Verification.Details.SMS` and `.Callout` gain `templateGroup`,
+  `templateGroupUsed` and `templateFallbackReason`, the last an open
+  `Verification.TemplateFallbackReason`. An unknown group fails with the new
+  `templateGroupNotFound`.
+- **New 429 error codes:** `rateLimitPerIP`, `rateLimitFailedAuth`, `rateLimitPerAccount`,
+  `rateLimitPublicPerAccount` and `volumeLimitReached` (the application reached its daily or
+  monthly verification limit; its `Retry-After` can be days). All still surface as
+  `APIError.unexpectedStatus(code: 429, items:)`.
+- **New `Verification.Reason` cases:** `applicationPaused` and `destinationCountryDisabled` (status
+  `denied`), and `destinationNotSupportedForChannel` (status `failed`).
+
+### Changed
+
+- **An unsupported destination no longer fails `start` with a 422.** A destination with no
+  country, one the channel can't reach, or a blocked range now comes back as a `201` verification
+  with status `failed` and reason `destinationNotSupportedForChannel`. Code that caught the 422
+  should check the returned verification instead. `APIErrorCode.destinationNotSupportedForChannel`
+  is kept for compatibility.
+- The new `APIErrorCode` and `Verification.Reason` cases make a `switch` over either enum with no
+  `default` non-exhaustive, so it needs the new cases added. The three new reasons used to decode
+  as `.other("<slug>")`; code matching on that should match the typed case instead.
+- Docs: a Testing section on the sandbox environment, which sends nothing and gives a predefined
+  result only for the reserved test numbers.
+
+### Deprecated
+
+- **`Verification.Reason.numberUnreachable`** (`stale_dispatch`). The service no longer sends it and
+  reports these verifications as `failedToDeliver` (`dispatch_failed`). It stays so existing
+  `switch` statements keep compiling, and will be removed in the next major version.
+- **`APIErrorCode.codeValuePresent`, `.cliBlank`, `.cliValuePresent` and `.cliInvalid`.** No longer
+  sent by the API; kept for source compatibility.
+
 ## 1.1.0
 
 Released — 2026-10.

@@ -17,6 +17,7 @@ struct StartRequestData: Encodable {
     let deliveryMethod: String
     /// Already checked against `deliveryMethod` by the caller.
     let channelOptions: [any ChannelOptionsBlock]
+    let custom: String?
 
     /// Spelled at runtime — the block's key comes from the block itself.
     private struct WireKey: CodingKey {
@@ -31,6 +32,7 @@ struct StartRequestData: Encodable {
         var c = encoder.container(keyedBy: WireKey.self)
         try c.encode(destination, forKey: WireKey("destination"))
         try c.encode(deliveryMethod, forKey: WireKey("delivery_method"))
+        try c.encodeIfPresent(custom, forKey: WireKey("custom"))
         // Omitted when empty — the server distinguishes absent from present.
         for block in channelOptions where !block.isEmpty {
             let key = WireKey(type(of: block).channel.wireValue)
@@ -89,21 +91,40 @@ struct SMSInfo: Decodable {
     let template: String?
     let language: String?
     let codeLength: Int?
+    let autofill: AutofillInfo?
+    let templateGroup: String?
+    let templateGroupUsed: Bool?
+    let templateFallbackReason: String?
 
     enum CodingKeys: String, CodingKey {
         case template
         case language
         case codeLength = "code_length"
+        case autofill
+        case templateGroup = "template_group"
+        case templateGroupUsed = "template_group_used"
+        case templateFallbackReason = "template_fallback_reason"
     }
+}
+
+struct AutofillInfo: Decodable {
+    let type: String?
+    let value: String?
 }
 
 struct CalloutInfo: Decodable {
     let language: String?
     let codeLength: Int?
+    let templateGroup: String?
+    let templateGroupUsed: Bool?
+    let templateFallbackReason: String?
 
     enum CodingKeys: String, CodingKey {
         case language
         case codeLength = "code_length"
+        case templateGroup = "template_group"
+        case templateGroupUsed = "template_group_used"
+        case templateFallbackReason = "template_fallback_reason"
     }
 }
 
@@ -152,8 +173,21 @@ extension VerificationDTO {
     /// The one block the server emitted, mapped to its domain case. Keys stay optional even where
     /// the API marks them required — a block short of a key still yields the rest.
     private var details: Verification.Details? {
-        if let sms { return .sms(.init(template: sms.template, language: sms.language, codeLength: sms.codeLength)) }
-        if let callout { return .callout(.init(language: callout.language, codeLength: callout.codeLength)) }
+        if let sms {
+            return .sms(.init(
+                template: sms.template, language: sms.language, codeLength: sms.codeLength,
+                autofill: sms.autofill.flatMap(Verification.Details.SMS.Autofill.init(dto:)),
+                templateGroup: sms.templateGroup, templateGroupUsed: sms.templateGroupUsed,
+                templateFallbackReason: sms.templateFallbackReason.map(Verification.TemplateFallbackReason.init(wireValue:))
+            ))
+        }
+        if let callout {
+            return .callout(.init(
+                language: callout.language, codeLength: callout.codeLength,
+                templateGroup: callout.templateGroup, templateGroupUsed: callout.templateGroupUsed,
+                templateFallbackReason: callout.templateFallbackReason.map(Verification.TemplateFallbackReason.init(wireValue:))
+            ))
+        }
         return nil
     }
 }

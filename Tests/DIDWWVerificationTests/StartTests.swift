@@ -28,6 +28,95 @@ final class StartTests: XCTestCase {
         XCTAssertFalse(verification.isExpired)
     }
 
+    // The 1.1.0 signatures stay as overloads; referenced as function values so a removal or an
+    // ambiguity fails to compile.
+    func testPreviousPublicSignaturesStillResolve() async throws {
+        let sms: ([String]?) -> SMSOptions = SMSOptions.init(languages:)
+        let callout: ([String]?) -> CalloutOptions = CalloutOptions.init(languages:)
+        XCTAssertEqual(sms(["de-DE"]), SMSOptions(languages: ["de-DE"]))
+        XCTAssertEqual(callout(["pt-BR"]), CalloutOptions(languages: ["pt-BR"]))
+        XCTAssertEqual(SMSOptions(), SMSOptions(languages: nil, autofill: nil, templateGroup: nil))
+
+        let mock = MockTransport(httpResponse(Fixtures.startSMS(), status: 201))
+        let client = makeClient(transport: mock)
+        let start = client.start(destination:method:sms:callout:)
+        _ = try await start("+15551234567", .sms, sms(["de-DE"]), nil)
+
+        let body = requestBodyData(mock.recordedRequests[0])
+        XCTAssertEqual(body["sms"] as? [String: [String]], ["languages": ["de-DE"]])
+        XCTAssertFalse(body.keys.contains("custom"))
+    }
+
+    // `custom` is a top-level member of `data`, not part of a channel block.
+    func testStartSendsCustomAtTopLevel() async throws {
+        let mock = MockTransport(httpResponse(Fixtures.startSMS(), status: 201))
+        let client = makeClient(transport: mock)
+
+        _ = try await client.start(destination: "+15551234567", method: .sms, custom: "session=42")
+
+        let body = requestBodyData(mock.recordedRequests[0])
+        XCTAssertEqual(body["custom"] as? String, "session=42")
+        XCTAssertNil(body["sms"])
+    }
+
+    func testStartOmitsCustomWhenNil() async throws {
+        let mock = MockTransport(httpResponse(Fixtures.startSMS(), status: 201))
+        let client = makeClient(transport: mock)
+
+        _ = try await client.start(destination: "+15551234567", method: .sms)
+
+        XCTAssertFalse(requestBodyData(mock.recordedRequests[0]).keys.contains("custom"))
+    }
+
+    // `autofill` carries only a `type` for both cases iOS offers; `.disabled` is the wire's `none`.
+    func testStartSendsAutofillAndTemplateGroupInTheSMSBlock() async throws {
+        for (autofill, wire) in [(.domain, "domain"), (.disabled, "none")] as [(SMSOptions.Autofill, String)] {
+            let mock = MockTransport(httpResponse(Fixtures.startSMS(), status: 201))
+            let client = makeClient(transport: mock)
+
+            _ = try await client.start(destination: "+15551234567", method: .sms,
+                                       sms: .init(autofill: autofill, templateGroup: "checkout"))
+
+            let sms = requestBodyData(mock.recordedRequests[0])["sms"] as? [String: Any]
+            XCTAssertEqual(sms?["autofill"] as? [String: String], ["type": wire])
+            XCTAssertEqual(sms?["template_group"] as? String, "checkout")
+            XCTAssertNil(sms?["languages"])
+        }
+    }
+
+    func testStartSendsTemplateGroupInTheCalloutBlock() async throws {
+        let mock = MockTransport(httpResponse(Fixtures.startCallout(), status: 201))
+        let client = makeClient(transport: mock)
+
+        _ = try await client.start(destination: "+15551234567", method: .callout,
+                                   callout: .init(templateGroup: "checkout"))
+
+        let body = requestBodyData(mock.recordedRequests[0])
+        XCTAssertEqual(body["callout"] as? [String: String], ["template_group": "checkout"])
+    }
+
+    // A start can be refused as an outcome: a 201 whose status is denied or failed.
+    func testStartRefusedAsAnOutcomeTypesItsReason() async throws {
+        let cases: [(String, String, Verification.Status, Verification.Reason)] = [
+            ("application_paused", "denied", .denied, .applicationPaused),
+            ("destination_country_disabled", "denied", .denied, .destinationCountryDisabled),
+            ("destination_not_supported_for_channel", "failed", .failed, .destinationNotSupportedForChannel),
+        ]
+        for (slug, status, expectedStatus, expectedReason) in cases {
+            let body = """
+            {"data":{"id":"11111111-1111-1111-1111-111111111111","destination":"+15551234567",\
+            "delivery_method":"sms","status":"\(status)","error_code":"\(slug)","error_detail":"refused",\
+            "expires_at":"\(Fixtures.farFuture)","sms":{"template":null,"language":"en-US"}}}
+            """
+            let client = makeClient(transport: MockTransport(httpResponse(body, status: 201)))
+
+            let verification = try await client.start(destination: "+15551234567", method: .sms)
+
+            XCTAssertEqual(verification.status, expectedStatus)
+            XCTAssertEqual(verification.reason, expectedReason)
+        }
+    }
+
     // `callout` takes the same language list as `sms`, in its own block.
     func testStartCalloutSendsLanguagesInItsOwnBlock() async throws {
         let mock = MockTransport(httpResponse(Fixtures.startCallout(), status: 201))
