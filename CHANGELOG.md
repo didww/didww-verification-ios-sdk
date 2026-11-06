@@ -4,6 +4,16 @@ Notable changes to `DIDWWVerification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking change to
 the public surface requires a major version.
 
+## 1.3.0
+
+Unreleased.
+
+### Added
+
+- **New 429 error code `destinationPrefixRateLimited`:** too many verifications to this number
+  range; wait `Retry-After`. It is returned only when starting a verification, and no verification
+  is created. It surfaces as `APIError.unexpectedStatus(code: 429, items:)`.
+
 ## 1.2.0
 
 Released — 2026-10.
