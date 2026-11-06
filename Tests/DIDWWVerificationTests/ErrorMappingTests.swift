@@ -146,7 +146,8 @@ final class ErrorMappingTests: XCTestCase {
         "delivery_method_blank", "delivery_method_inclusion", "delivery_method_invalid",
         "denied_by_callback", "denied_invalid_callback_response", "denied_missing_callback_url",
         "destination_blank", "destination_country_disabled", "destination_in_cooldown",
-        "destination_invalid", "destination_not_supported_for_channel", "dispatch_failed",
+        "destination_invalid", "destination_not_supported_for_channel", "destination_prefix_rate_limited",
+        "dispatch_failed",
         "expired", "internal_error", "languages_invalid", "not_found", "not_ready_to_report",
         "parameter_missing", "rate_limit_failed_auth", "rate_limit_per_account", "rate_limit_per_ip",
         "rate_limit_public_per_account", "sms_domain_not_configured", "superseded",
@@ -158,7 +159,7 @@ final class ErrorMappingTests: XCTestCase {
     private static let dualSlugs: Set = ["destination_not_supported_for_channel"]
 
     func testEveryServerSlugIsModelledByExactlyOneType() {
-        XCTAssertEqual(Self.serverSlugs.count, 38, "the server registry has 38 slugs")
+        XCTAssertEqual(Self.serverSlugs.count, 39, "the server registry has 39 slugs")
         for slug in Self.serverSlugs {
             let isEnvelopeError = APIErrorCode(rawValue: slug) != nil
             let isOutcomeReason = Verification.Reason(wireValue: slug) != .other(slug)
@@ -169,7 +170,7 @@ final class ErrorMappingTests: XCTestCase {
                 XCTAssertFalse(isEnvelopeError && isOutcomeReason, "'\(slug)' is modelled by both types")
             }
         }
-        XCTAssertEqual(APIErrorCode.allCases.count, 32)
+        XCTAssertEqual(APIErrorCode.allCases.count, 33)
     }
 
     /// A 429 for a destination in cooldown maps to `.unexpectedStatus` — a dedicated `APIError` case
@@ -262,6 +263,7 @@ final class ErrorMappingTests: XCTestCase {
             ("rate_limit_per_account", "1", .rateLimitPerAccount, 1),
             ("rate_limit_public_per_account", "1", .rateLimitPublicPerAccount, 1),
             ("volume_limit_reached", "43200", .volumeLimitReached, 43200),
+            ("destination_prefix_rate_limited", "120", .destinationPrefixRateLimited, 120),
         ]
         for (slug, header, known, wait) in cases {
             let mock = MockTransport(httpResponse(

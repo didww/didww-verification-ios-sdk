@@ -53,6 +53,8 @@ public enum APIErrorCode: String, Sendable, Equatable, CaseIterable {
     case destinationInCooldown = "destination_in_cooldown"  // 429
     // The application reached its daily or monthly verification limit.
     case volumeLimitReached = "volume_limit_reached"        // 429
+    // Too many verifications to this number range; wait `Retry-After`. Envelope-only: no row is created.
+    case destinationPrefixRateLimited = "destination_prefix_rate_limited"  // 429
     // Too many requests (or failed authentications) from this IP address or for this account.
     case rateLimitPerIP = "rate_limit_per_ip"                          // 429
     case rateLimitFailedAuth = "rate_limit_failed_auth"                // 429

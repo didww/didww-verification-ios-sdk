@@ -25,7 +25,7 @@ In Xcode: **File → Add Package Dependencies…** and enter the repository URL.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/didww/didww-verification-ios-sdk.git", from: "1.2.0")
+    .package(url: "https://github.com/didww/didww-verification-ios-sdk.git", from: "1.3.0")
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -39,7 +39,7 @@ targets: [
 Add it to your `Podfile`:
 
 ```ruby
-pod 'DIDWWVerification', '~> 1.2'
+pod 'DIDWWVerification', '~> 1.3'
 ```
 
 ## Quick start
@@ -310,14 +310,17 @@ do {
 > - `.volumeLimitReached` — the application reached its daily or monthly verification limit.
 >   `Retry-After` can be long (days): surface it to the user instead of retrying, or contact
 >   support to raise the limit.
+> - `.destinationPrefixRateLimited` — too many verifications to this number range; wait `Retry-After`.
+>   Show "Too many verification requests right now. Please try again later." and do not retry on a timer.
 >
 > Each item's `retryAfter` carries the server's `Retry-After` header as whole seconds to wait before
 > trying again; it's `nil` if the response sent no usable header. The SDK never retries for you.
 >
 > ```swift
 > } catch APIError.unexpectedStatus(let code, let items) where code == 429 {
->     if items.first?.known == .volumeLimitReached {
->         showLimitReached()                  // can be days — don't retry on a timer
+>     let known = items.first?.known
+>     if known == .volumeLimitReached || known == .destinationPrefixRateLimited {
+>         showLimitReached()                  // don't retry on a timer
 >     } else if let wait = items.first?.retryAfter {
 >         scheduleRetry(after: wait)          // wait `retryAfter` seconds, then try again
 >     } else {
