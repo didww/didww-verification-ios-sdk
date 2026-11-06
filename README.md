@@ -39,7 +39,7 @@ targets: [
 Add it to your `Podfile`:
 
 ```ruby
-pod 'DIDWWVerification', '~> 1.2'
+pod 'DIDWWVerification', '~> 1.3'
 ```
 
 ## Quick start

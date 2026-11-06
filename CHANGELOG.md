@@ -14,6 +14,11 @@ Unreleased.
   range; wait `Retry-After`. It is returned only when starting a verification, and no verification
   is created. It surfaces as `APIError.unexpectedStatus(code: 429, items:)`.
 
+### Changed
+
+- The new `APIErrorCode` case makes a `switch` over the enum with no `default`
+  non-exhaustive, so it needs the new case or a `default` branch.
+
 ## 1.2.0
 
 Released — 2026-10.
