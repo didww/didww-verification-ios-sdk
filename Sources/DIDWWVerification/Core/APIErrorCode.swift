@@ -48,6 +48,8 @@ public enum APIErrorCode: String, Sendable, Equatable, CaseIterable {
     case notFound = "not_found"                        // 404
     case balanceInsufficient = "balance_insufficient"  // 402
     case internalError = "internal_error"              // 422 / 500
+    // The account can't use the requested delivery method; contact DIDWW support. Envelope-only: no row is created.
+    case channelBlocked = "channel_blocked"  // 422
     // A verification for this destination was requested too recently. Still maps to
     // ``APIError/unexpectedStatus(code:items:)`` — a dedicated `APIError` case is deferred.
     case destinationInCooldown = "destination_in_cooldown"  // 429

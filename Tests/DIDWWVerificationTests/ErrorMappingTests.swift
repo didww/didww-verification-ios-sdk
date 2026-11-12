@@ -142,7 +142,7 @@ final class ErrorMappingTests: XCTestCase {
     /// A slug the server adds fails here until one of the types models it.
     private static let serverSlugs = [
         "already_verified", "app_hash_invalid", "application_deleted", "application_paused",
-        "autofill_invalid", "balance_insufficient", "code_blank", "code_invalid", "custom_too_long",
+        "autofill_invalid", "balance_insufficient", "channel_blocked", "code_blank", "code_invalid", "custom_too_long",
         "delivery_method_blank", "delivery_method_inclusion", "delivery_method_invalid",
         "denied_by_callback", "denied_invalid_callback_response", "denied_missing_callback_url",
         "destination_blank", "destination_country_disabled", "destination_in_cooldown",
@@ -159,7 +159,7 @@ final class ErrorMappingTests: XCTestCase {
     private static let dualSlugs: Set = ["destination_not_supported_for_channel"]
 
     func testEveryServerSlugIsModelledByExactlyOneType() {
-        XCTAssertEqual(Self.serverSlugs.count, 39, "the server registry has 39 slugs")
+        XCTAssertEqual(Self.serverSlugs.count, 40, "the server registry has 40 slugs")
         for slug in Self.serverSlugs {
             let isEnvelopeError = APIErrorCode(rawValue: slug) != nil
             let isOutcomeReason = Verification.Reason(wireValue: slug) != .other(slug)
@@ -170,7 +170,7 @@ final class ErrorMappingTests: XCTestCase {
                 XCTAssertFalse(isEnvelopeError && isOutcomeReason, "'\(slug)' is modelled by both types")
             }
         }
-        XCTAssertEqual(APIErrorCode.allCases.count, 33)
+        XCTAssertEqual(APIErrorCode.allCases.count, 34)
     }
 
     /// A 429 for a destination in cooldown maps to `.unexpectedStatus` — a dedicated `APIError` case
@@ -289,6 +289,7 @@ final class ErrorMappingTests: XCTestCase {
             ("sms_domain_not_configured", .smsDomainNotConfigured),
             ("template_group_not_found", .templateGroupNotFound),
             ("destination_not_supported_for_channel", .destinationNotSupportedForChannel),
+            ("channel_blocked", .channelBlocked),
         ]
         for (slug, known) in cases {
             let body = Fixtures.errorBody([(code: slug, detail: "rejected")])

@@ -14,6 +14,9 @@ Unreleased.
   range; wait `Retry-After`. It is returned only when starting a verification, and no verification
   is created. It surfaces as `APIError.unexpectedStatus(code: 429, items:)`.
 
+- **`APIErrorCode.channelBlocked`** (`channel_blocked`). A start can be refused with a 422 carrying
+  it when the account can't use the requested delivery method. Contact DIDWW support.
+
 ### Changed
 
 - The new `APIErrorCode` case makes a `switch` over the enum with no `default`

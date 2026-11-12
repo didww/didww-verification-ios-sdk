@@ -365,7 +365,8 @@ default:
 This matters most with `.public` auth, where a denial is a routine outcome rather than an edge
 case. A start can also be refused this way for other reasons: `.applicationPaused` and
 `.destinationCountryDisabled` (status `denied`), and `.destinationNotSupportedForChannel` (status
-`failed`) for a destination the channel can't reach.
+`failed`) for a destination the channel can't reach. `.channelBlocked` (422, no verification is
+created) means the account can't use the requested delivery method: contact DIDWW support.
 
 ### Reading the delivery-method block
 
