@@ -6,7 +6,7 @@ the public surface requires a major version.
 
 ## 1.3.0
 
-Unreleased.
+Released — 2026-11.
 
 ### Added
 
