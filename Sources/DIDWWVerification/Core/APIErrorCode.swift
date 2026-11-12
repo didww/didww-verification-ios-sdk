@@ -48,11 +48,15 @@ public enum APIErrorCode: String, Sendable, Equatable, CaseIterable {
     case notFound = "not_found"                        // 404
     case balanceInsufficient = "balance_insufficient"  // 402
     case internalError = "internal_error"              // 422 / 500
+    // The account can't use the requested delivery method; contact DIDWW support. Envelope-only: no row is created.
+    case channelBlocked = "channel_blocked"  // 422
     // A verification for this destination was requested too recently. Still maps to
     // ``APIError/unexpectedStatus(code:items:)`` — a dedicated `APIError` case is deferred.
     case destinationInCooldown = "destination_in_cooldown"  // 429
     // The application reached its daily or monthly verification limit.
     case volumeLimitReached = "volume_limit_reached"        // 429
+    // Too many verifications to this number range; wait `Retry-After`. Envelope-only: no row is created.
+    case destinationPrefixRateLimited = "destination_prefix_rate_limited"  // 429
     // Too many requests (or failed authentications) from this IP address or for this account.
     case rateLimitPerIP = "rate_limit_per_ip"                          // 429
     case rateLimitFailedAuth = "rate_limit_failed_auth"                // 429
